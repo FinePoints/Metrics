@@ -110,11 +110,10 @@
     /* Grid Layout for Overlays */
     .dashboard-grid {
       position: absolute;
-      top: 35.5%; /* Adjusted down slightly (~10px) to center inside white boxes */
-      width: 43.2%; /* Derived from left side bounds: 4.1% to 47.3% */
-      height: 53%;  /* Derived from top bounds: 36.5% to 89.5% */
+      top: 35.5%;
+      width: 43.2%;
+      height: 53%;
       display: grid;
-      /* Precisely matching the 14% absolute width/height sizes */
       grid-template-columns: repeat(3, 32.407%);
       grid-template-rows: repeat(3, 26.415%);
       justify-content: space-between;
@@ -122,15 +121,9 @@
       z-index: 2;
     }
 
-    .left-side {
-      left: 4.1%;
-    }
+    .left-side { left: 4.1%; }
+    .right-side { right: 4.1%; }
 
-    .right-side {
-      right: 4.1%;
-    }
-
-    /* Graph Overlays (Grid Items) */
     .graph-cell {
       position: relative;
       width: 100%;
@@ -150,7 +143,6 @@
       overflow: visible;
     }
 
-    /* Target Goals Styles */
     .goal-cell {
       position: relative;
       width: 100%;
@@ -209,11 +201,11 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      list-style: none; /* Hides default arrow in some browsers */
+      list-style: none;
     }
 
     summary::-webkit-details-marker {
-      display: none; /* Hides default arrow in Safari/Chrome */
+      display: none;
     }
 
     summary::after {
@@ -331,7 +323,7 @@
     }
 
     .dept-card-title {
-      font-size: clamp(6px, 1.5vw, 16px);
+      font-size: 1.2em;
       font-weight: bold;
       color: var(--walmart-navy);
       flex: 0 0 45%;
@@ -354,10 +346,10 @@
     /* Week Number Display */
     .week-display {
       position: absolute;
-      bottom: -0.5%; /* Shifted down ~20px to center in the bottom area */
+      bottom: -0.5%;
       left: 2.5%;
       color: var(--walmart-navy);
-      font-size: clamp(8px, 2vw, 32px); /* Lowered minimum for mobile scaling */
+      font-size: 2.5em;
       font-family: 'Bogle', 'Helvetica Neue', Helvetica, Arial, sans-serif;
       font-weight: 900;
       z-index: 5;
@@ -366,7 +358,7 @@
     /* Associate Performance Styles */
     .assoc-header {
       position: absolute;
-      top: calc(21.5% + 5px); /* Dropped down 5px */
+      top: 22.2%;
       left: 3.5%;
       width: 58.5%;
       height: 6.5%;
@@ -374,7 +366,7 @@
       align-items: center;
       justify-content: center;
       color: #fff;
-      font-size: clamp(14px, 2.5vw, 36px);
+      font-size: 2.6em;
       font-weight: bold;
       z-index: 2;
     }
@@ -389,7 +381,7 @@
     .assoc-box-title {
       text-align: center;
       font-weight: bold;
-      font-size: clamp(12px, 1.8vw, 32px);
+      font-size: 1.8em;
       color: var(--walmart-navy);
       margin-bottom: 5%;
       border-bottom: 2px solid #e0e0e0;
@@ -409,7 +401,7 @@
     .assoc-row {
       display: flex;
       justify-content: space-between;
-      font-size: clamp(8px, 1.2vw, 24px);
+      font-size: 1.4em;
       font-weight: bold;
       color: var(--walmart-navy);
     }
@@ -570,7 +562,7 @@
   <script>
     // --- APP VERSION ---
     // Change this string whenever you push an update to GitHub to force users' browsers to reload!
-    const APP_VERSION = "1.0.23";
+    const APP_VERSION = "1.0.34";
     
     // PWA Version Checker
     async function checkForUpdates() {
@@ -688,6 +680,20 @@
       renderGraphs();
       renderDeptGraphs();
       renderAssocGraphs();
+
+      // Trigger initial text scaling calculation
+      updateContainerFonts();
+      window.addEventListener('resize', updateContainerFonts);
+    }
+
+    function updateContainerFonts() {
+      const containers = document.querySelectorAll('.container');
+      containers.forEach(container => {
+        // If visible, set the baseline font size so 1em = 1% of container width
+        if (container.style.display !== 'none') {
+          container.style.fontSize = (container.offsetWidth / 100) + 'px';
+        }
+      });
     }
 
     function initControls() {
@@ -780,9 +786,9 @@
           div.className = 'control-group';
           div.innerHTML = `
             <label>#${index + 1}</label>
-            <div style="display: flex; gap: 4px;">
-              <input type="text" placeholder="Name" value="${item.name}" oninput="updateAssoc('${group}', ${index}, 'name', this.value)" style="flex: 2;">
-              <input type="text" inputmode="decimal" placeholder="Score" value="${item.value}" oninput="updateAssoc('${group}', ${index}, 'value', this.value)" style="flex: 1;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <input type="text" placeholder="Name" value="${item.name}" oninput="updateAssoc('${group}', ${index}, 'name', this.value)">
+              <input type="text" inputmode="decimal" placeholder="Score" value="${item.value}" oninput="updateAssoc('${group}', ${index}, 'value', this.value)">
             </div>
           `;
           container.appendChild(div);
@@ -952,7 +958,7 @@
         
         cell.innerHTML = `
           <div class="dept-card-title">${item.name}</div>
-          <div class="dept-card-value" style="display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: clamp(24px, 4vw, 46px); color: #041e42; height: 100%;">
+          <div class="dept-card-value" style="display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 3.5em; color: #041e42; height: 100%;">
             ${displayText}
           </div>
         `;
@@ -1047,6 +1053,9 @@
       fCont.style.display = view === 'fulfillment' ? 'block' : 'none';
       dCont.style.display = view === 'department' ? 'block' : 'none';
       aCont.style.display = view === 'associate' ? 'block' : 'none';
+
+      // Re-calculate font sizes since the container width was just un-hidden
+      setTimeout(updateContainerFonts, 0);
     }
 
     function showToast(msg) {
@@ -1104,6 +1113,9 @@
       container.style.minHeight = '768px';
       container.style.aspectRatio = 'auto';
 
+      // Snap the fonts to exactly the right pixel size for the 1376px export canvas
+      updateContainerFonts();
+
       setTimeout(() => {
         html2canvas(container, {
           scale: 2, 
@@ -1118,6 +1130,9 @@
           container.style.height = originalHeight;
           container.style.minHeight = originalMinHeight;
           container.style.aspectRatio = originalAspect;
+
+          // Revert fonts back to responsive screen scale
+          updateContainerFonts();
 
           const link = document.createElement('a');
           link.download = exportName;
