@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Walmart Fulfillment Metrics</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --walmart-navy: #002244;
+      --walmart-blue: #0071ce;
+      --walmart-yellow: #ffc220;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background-color: #f4f6f8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* Navbar */
+    .toolbar {
+      width: 100%;
+      background-color: var(--walmart-blue);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      box-sizing: border-box;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      z-index: 10;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.1);
+      padding: 8px 12px;
+      border-radius: 6px;
+      color: white;
+      font-weight: 500;
+    }
+
+    .toolbar button {
+      background-color: var(--walmart-yellow);
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .toolbar button:hover {
+      background-color: #e3a918;
+    }
+
+    input[type="file"] {
+      font-size: 13px;
+    }
+
+    /* Main Container (16:9) */
+    .container {
+      position: relative;
+      width: 100%;
+      max-width: 1920px;
+      aspect-ratio: 16 / 9;
+      margin: 20px auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      background-color: #fff;
+      overflow: hidden;
+    }
+
+    .bg-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      z-index: 0;
+      display: block;
+    }
+
+    /* Grid Layout for Overlays */
+    .dashboard-grid {
+      position: absolute;
+      top: 35.5%; /* Adjusted down slightly (~10px) to center inside white boxes */
+      width: 43.2%; /* Derived from left side bounds: 4.1% to 47.3% */
+      height: 53%;  /* Derived from top bounds: 36.5% to 89.5% */
+      display: grid;
+      /* Precisely matching the 14% absolute width/height sizes */
+      grid-template-columns: repeat(3, 32.407%);
+      grid-template-rows: repeat(3, 26.415%);
+      justify-content: space-between;
+      align-content: space-between;
+      z-index: 2;
+    }
+
+    .left-side {
+      left: 4.1%;
+    }
+
+    .right-side {
+      right: 4.1%;
+    }
+
+    /* Graph Overlays (Grid Items) */
+    .graph-cell {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+    }
+
+    .graph-cell svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    /* Target Goals Styles */
+    .goal-cell {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      background: transparent;
+      border: none;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      border-radius: 4px;
+    }
+
+    .goal-svg-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+    }
+
+    /* Responsive Viewer & Controls Panel */
+    .responsive-viewer {
+      width: 100%;
+      overflow-x: auto;
+      display: flex;
+      justify-content: center;
+    }
+
+    .controls-container {
+      width: 100%;
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 0 15px 40px 15px;
+      box-sizing: border-box;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+
+    details {
+      background: #fff;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+
+    summary {
+      background: var(--walmart-blue);
+      color: #fff;
+      padding: 16px 20px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      list-style: none; /* Hides default arrow in some browsers */
+    }
+
+    summary::-webkit-details-marker {
+      display: none; /* Hides default arrow in Safari/Chrome */
+    }
+
+    summary::after {
+      content: '▼';
+      font-size: 14px;
+      transition: transform 0.2s ease-in-out;
+    }
+
+    details[open] summary::after {
+      transform: rotate(180deg);
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      padding: 15px;
+      background: #fafafa;
+    }
+
+    @media (min-width: 600px) {
+      .controls-grid {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 15px;
+        padding: 20px;
+      }
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .control-group label {
+      font-size: 13px;
+      font-weight: bold;
+      color: var(--walmart-navy);
+    }
+
+    .control-group input {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 15px;
+      box-sizing: border-box;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      width: 100%;
+    }
+
+    .control-group input:focus {
+      outline: none;
+      border-color: var(--walmart-blue);
+      box-shadow: 0 0 0 2px rgba(0, 113, 206, 0.2);
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .input-wrapper input {
+      padding-right: 30px;
+      width: 100%;
+    }
+
+    .input-wrapper.has-prefix input {
+      padding-left: 25px;
+      padding-right: 10px;
+    }
+
+    .input-prefix {
+      position: absolute;
+      left: 12px;
+      color: #666;
+      font-weight: bold;
+      pointer-events: none;
+    }
+
+    .input-suffix {
+      position: absolute;
+      right: 12px;
+      color: #666;
+      font-weight: bold;
+      pointer-events: none;
+    }
+
+    /* Department Metrics Styles */
+    .dept-grid {
+      position: absolute;
+      top: 22%;
+      left: 4%;
+      width: 42%;
+      height: 68%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 10px;
+      z-index: 2;
+    }
+
+    .dept-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-family: Arial, sans-serif;
+      width: 100%;
+      height: 100%;
+    }
+
+    .dept-card-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--walmart-navy);
+      margin-bottom: 5px;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dept-card-value {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+    }
+
+    /* Week Number Display */
+    .week-display {
+      position: absolute;
+      bottom: -0.5%; /* Shifted down ~20px to center in the bottom area */
+      left: 2.5%;
+      color: var(--walmart-navy);
+      font-size: clamp(20px, 2.5vw, 32px); /* Scaled down slightly */
+      font-family: 'Bogle', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-weight: 900;
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar" id="toolbar">
+    <div class="toolbar-group">
+      <label for="imageUpload">Fallback Background Image: </label>
+      <input type="file" id="imageUpload" accept="image/*" onchange="handleImageUpload(event)">
+    </div>
+  </div>
+
+  <!-- Mobile-Friendly Controls Panel -->
+  <div class="controls-container" style="margin-bottom: 20px;">
+    
+    <!-- View Selection & Export Controls -->
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; background: #fff; padding: 16px; border: 1px solid #d1d5db; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <label for="viewSelect" style="font-weight: bold; color: var(--walmart-navy); font-size: 16px;">Metric Selection:</label>
+        <select id="viewSelect" onchange="toggleView()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; font-weight: bold; font-size: 14px; cursor: pointer; color: var(--walmart-navy); background-color: #f8f9fa;">
+          <option value="fulfillment">Fulfillment Metrics</option>
+          <option value="department">Department Metrics</option>
+        </select>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <label for="weekInput" style="font-weight: bold; color: var(--walmart-navy); font-size: 16px;">Week Number:</label>
+        <input type="text" id="weekInput" placeholder="e.g. 23" oninput="updateWeekNumber(this.value)" inputmode="decimal" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; font-weight: bold; font-size: 14px; width: 120px; box-sizing: border-box;">
+      </div>
+      <button onclick="exportGraphic()" onmouseover="this.style.backgroundColor='#e3a918'" onmouseout="this.style.backgroundColor='var(--walmart-yellow)'" style="width: 100%; background-color: var(--walmart-yellow); color: #000; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background-color 0.2s;">
+        Export as PNG
+      </button>
+    </div>
+
+    <!-- Fulfillment Controls -->
+    <div id="fulfillmentControlsWrapper">
+      <details open>
+        <summary>Performance Overview</summary>
+        <div class="controls-grid" id="perfControls"></div>
+      </details>
+      
+      <details>
+        <summary>Target Goals</summary>
+        <div class="controls-grid" id="goalControls"></div>
+      </details>
+    </div>
+
+    <!-- Department Controls -->
+    <div id="departmentControlsWrapper" style="display: none;">
+      <details open>
+        <summary>Department Metrics</summary>
+        <div class="controls-grid" id="deptControls"></div>
+      </details>
+    </div>
+
+  </div>
+
+  <div class="responsive-viewer">
+    <!-- Fulfillment Viewer -->
+    <div class="container" id="fulfillmentContainer" style="width: 100%; aspect-ratio: 16/9; position: relative;">
+      <img id="fulfillment-bg" class="bg-image" src="Fulfillment_metrics_and_goals_dashboard_1eb79344_2K_2.jpg" onerror="this.onerror=null;this.src='https://placehold.co/1920x1080/f4f6f8/a0aab5?text=Please+Upload+Background+Image';" alt="background">
+      <div id="fulfillmentWeek" class="week-display"></div>
+      <div id="leftGrid" class="dashboard-grid left-side"></div>
+      <div id="rightGrid" class="dashboard-grid right-side"></div>
+    </div>
+
+    <!-- Department Viewer -->
+    <div class="container" id="departmentContainer" style="display: none; width: 100%; aspect-ratio: 16/9; position: relative;">
+      <img id="department-bg" class="bg-image" src="Rearranging_layout_elements_1b76f72c_2K_2.jpg" onerror="this.onerror=null;this.src='https://placehold.co/1920x1080/f4f6f8/a0aab5?text=Please+Upload+Background+Image';" alt="background">
+      <div id="departmentWeek" class="week-display"></div>
+      <div id="deptGrid" class="dept-grid"></div>
+    </div>
+  </div>
+
+  <script>
+    // Starting data state for the 9 cells (Performance Side)
+    let cellsData = [
+      { text: "", type: "percent" },
+      { text: "", type: "percent" },
+      { text: "", type: "percent" },
+      { text: "", type: "percent" },
+      { text: "", type: "percent" },
+      { text: "", type: "percent" },
+      { text: "", type: "time" },
+      { text: "", type: "currency" },
+      { text: "", type: "text" }
+    ];
+
+    // Starting data state for the 9 cells (Goals Side)
+    let goalsData = [
+      { text: "98", type: "percent" },
+      { text: "94", type: "percent" },
+      { text: "97", type: "percent" },
+      { text: "99", type: "percent" },
+      { text: "95", type: "percent" },
+      { text: "100", type: "percent" },
+      { text: "5", type: "time" },
+      { text: "", type: "currency" }, // Empty by default per the background image layout
+      { text: "", type: "text" }  // Empty by default per the background image layout
+    ];
+
+    // Starting data state for Department Metrics
+    let deptData = [
+      { name: "Schedule to Demand", text: "", type: "percent" },
+      { name: "Actual to Demand", text: "", type: "percent" },
+      { name: "Digital Turnover", text: "", type: "percent" },
+      { name: "Call-In Rate", text: "", type: "percent" },
+      { name: "Full Time Associates", text: "", type: "number" },
+      { name: "Part Time Associates", text: "", type: "number" },
+      { name: "Total Headcount", text: "", type: "number" }
+    ];
+
+    const metricNames = [
+      "On-Time Pick", "First-Time Pick", "PreSub", "PostSub", 
+      "Scan Stage", "Quality Checks", "Wait Time", "Sales WK", "Total Orders WK"
+    ];
+
+    const svgCircumference = Math.PI * 80; // Radius increased from 65 to 80 to widen the arc
+    const dashArray = svgCircumference;
+
+    function init() {
+      initControls();
+      renderGraphs();
+      renderDeptGraphs();
+    }
+
+    function initControls() {
+      const perfContainer = document.getElementById('perfControls');
+      const goalContainer = document.getElementById('goalControls');
+      
+      metricNames.forEach((name, index) => {
+        const isPercent = cellsData[index].type === 'percent';
+        const isCurrency = cellsData[index].type === 'currency';
+        
+        // Performance Input Group
+        const perfGroup = document.createElement('div');
+        perfGroup.className = 'control-group';
+        
+        let perfInputHtml;
+        if (isPercent) {
+          perfInputHtml = `<div class="input-wrapper"><input type="text" inputmode="decimal" value="${cellsData[index].text}" oninput="updateData('performance', ${index}, formatNumberInput(this))"><span class="input-suffix">%</span></div>`;
+        } else if (isCurrency) {
+          perfInputHtml = `<div class="input-wrapper has-prefix"><span class="input-prefix">$</span><input type="text" inputmode="decimal" value="${cellsData[index].text}" oninput="updateData('performance', ${index}, formatNumberInput(this))"></div>`;
+        } else {
+          perfInputHtml = `<input type="text" inputmode="decimal" value="${cellsData[index].text}" oninput="updateData('performance', ${index}, formatNumberInput(this))">`;
+        }
+
+        perfGroup.innerHTML = `
+          <label>${name}</label>
+          ${perfInputHtml}
+        `;
+        perfContainer.appendChild(perfGroup);
+
+        // Goal Input Group (Skip index 7 & 8 since they are visually empty on the Goals side in the image)
+        if (index < 7) {
+          const goalGroup = document.createElement('div');
+          goalGroup.className = 'control-group';
+          
+          let goalInputHtml;
+          if (isPercent) {
+            goalInputHtml = `<div class="input-wrapper"><input type="text" inputmode="decimal" value="${goalsData[index].text}" oninput="updateData('goal', ${index}, formatNumberInput(this))"><span class="input-suffix">%</span></div>`;
+          } else if (isCurrency) {
+            goalInputHtml = `<div class="input-wrapper has-prefix"><span class="input-prefix">$</span><input type="text" inputmode="decimal" value="${goalsData[index].text}" oninput="updateData('goal', ${index}, formatNumberInput(this))"></div>`;
+          } else {
+            goalInputHtml = `<input type="text" inputmode="decimal" value="${goalsData[index].text}" oninput="updateData('goal', ${index}, formatNumberInput(this))">`;
+          }
+
+          goalGroup.innerHTML = `
+            <label>${name}</label>
+            ${goalInputHtml}
+          `;
+          goalContainer.appendChild(goalGroup);
+        }
+      });
+
+      // Initialize Department Controls
+      const deptContainer = document.getElementById('deptControls');
+      deptData.forEach((item, index) => {
+        const isPercent = item.type === 'percent';
+        const group = document.createElement('div');
+        group.className = 'control-group';
+        
+        // Total Headcount (index 6) should be readonly and auto-calculated
+        const isReadonly = index === 6 ? 'readonly disabled style="background-color: #e9ecef; cursor: not-allowed;"' : '';
+        
+        const inputHtml = isPercent 
+          ? `<div class="input-wrapper"><input type="text" inputmode="decimal" id="dept-input-${index}" value="${item.text}" oninput="updateDeptData(${index}, formatNumberInput(this))" ${isReadonly}><span class="input-suffix">%</span></div>`
+          : `<input type="text" inputmode="decimal" id="dept-input-${index}" value="${item.text}" oninput="updateDeptData(${index}, formatNumberInput(this))" ${isReadonly}>`;
+
+        group.innerHTML = `
+          <label>${item.name}</label>
+          ${inputHtml}
+        `;
+        deptContainer.appendChild(group);
+      });
+    }
+
+    // Helper to strip non-numeric characters and allow only one decimal point
+    function formatNumberInput(input) {
+      let val = input.value.replace(/[^0-9.]/g, '');
+      const parts = val.split('.');
+      if (parts.length > 2) {
+        val = parts[0] + '.' + parts.slice(1).join('');
+      }
+      input.value = val;
+      return val;
+    }
+
+    function updateData(mode, index, value) {
+      if (mode === 'performance') {
+        cellsData[index].text = value;
+      } else {
+        goalsData[index].text = value;
+      }
+      renderGraphs();
+    }
+
+    function updateDeptData(index, value) {
+      deptData[index].text = value;
+
+      // Auto calculate Total Headcount (Index 6) from FT (Index 4) and PT (Index 5)
+      if (index === 4 || index === 5) {
+        const ft = parseInt(deptData[4].text) || 0;
+        const pt = parseInt(deptData[5].text) || 0;
+        
+        // Only show total if at least one field has data
+        const hasValue = deptData[4].text !== "" || deptData[5].text !== "";
+        deptData[6].text = hasValue ? (ft + pt).toString() : "";
+        
+        // Update the visual input field directly
+        const totalInput = document.getElementById('dept-input-6');
+        if (totalInput) {
+          totalInput.value = deptData[6].text;
+        }
+      }
+
+      renderDeptGraphs();
+    }
+
+    function updateWeekNumber(val) {
+      // Strip any non-numeric characters so typing "Week 23" or just "23" both resolve correctly
+      const num = val.replace(/[^0-9]/g, '');
+      const displayVal = num ? `Week ${num}` : '';
+      
+      document.getElementById('fulfillmentWeek').innerText = displayVal;
+      document.getElementById('departmentWeek').innerText = displayVal;
+    }
+
+    function parseValue(text) {
+      const match = text.match(/\d+(\.\d+)?/);
+      return match ? parseFloat(match[0]) : 0;
+    }
+
+    function getColor(value, target, type) {
+      const diff = value - target;
+      if (type === "percent") {
+        if (diff >= 0) return "#1ae81a"; // Green
+        if (diff >= -2) return "#ffc107"; // Yellow (1-2% below)
+        if (diff >= -4) return "#ff9800"; // Orange (3-4% below)
+        return "#f44336"; // Red (5%+ below)
+      } else if (type === "time") {
+        if (diff <= 0) return "#1ae81a"; // Green (At or under goal)
+        if (diff <= 2) return "#ffc107"; // Yellow (1-2 mins over)
+        if (diff <= 4) return "#ff9800"; // Orange (3-4 mins over)
+        return "#f44336"; // Red (5+ mins over)
+      }
+      return "#1ae81a"; // Fallback Green
+    }
+
+    function generateSVG(text, color, fillPercent, isTextOnly) {
+      if (isTextOnly) {
+        return `
+          <svg viewBox="0 0 200 130" width="100%" height="100%" style="overflow: visible;">
+              <text x="100" y="85" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#000" text-anchor="middle" dominant-baseline="middle">${text}</text>
+          </svg>
+        `;
+      }
+      const dashOffset = dashArray - (dashArray * (fillPercent / 100));
+      return `
+        <svg viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" style="overflow: visible;">
+          <path d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="#e2e2e2" stroke-width="25" stroke-linecap="butt" />
+          <path d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="${color}" stroke-width="25" 
+                stroke-dasharray="${dashArray}" stroke-dashoffset="${dashOffset}" stroke-linecap="butt" />
+          <text x="100" y="85" dominant-baseline="middle" text-anchor="middle" font-weight="bold" font-size="28" font-family="Arial, sans-serif" fill="#000">${text}</text>
+        </svg>
+      `;
+    }
+
+    function renderGoals() {
+      const container = document.getElementById('rightGrid');
+      container.innerHTML = '';
+
+      goalsData.forEach((data, index) => {
+        const cell = document.createElement('div');
+        cell.className = 'goal-cell';
+
+        // Only render if there is text (leaves bottom two boxes empty if desired)
+        if (data.text !== "") {
+          let displayText = data.text;
+          if (data.type === 'percent') displayText += '%';
+          if (data.type === 'currency') displayText = '$' + displayText;
+          
+          cell.innerHTML = `
+            <div class="goal-svg-container">
+              ${generateSVG(displayText, "#1ae81a", 100, data.type === 'text' || data.type === 'currency')}
+            </div>
+          `;
+        }
+        
+        container.appendChild(cell);
+      });
+    }
+
+    function renderGraphs() {
+      const container = document.getElementById('leftGrid');
+      container.innerHTML = '';
+
+      cellsData.forEach((data, index) => {
+        const parsedVal = parseValue(data.text);
+        const parsedTarget = parseValue(goalsData[index].text);
+        
+        const color = getColor(parsedVal, parsedTarget, data.type);
+        
+        // Calculate gauge fill based on metric type and current dynamic goal
+        let fillPercent;
+        if (data.text === "") {
+          fillPercent = 0;
+        } else if (data.type === 'time') {
+          const diff = parsedVal - parsedTarget;
+          if (diff <= 0) {
+            fillPercent = 100;
+          } else if (diff < 5) {
+            // Shrink by 20% for each minute over the goal
+            fillPercent = 100 - (diff * 20);
+          } else {
+            fillPercent = 100; // >= 5 mins over goal snaps back to 100% red
+          }
+        } else {
+          fillPercent = Math.min(Math.max(parsedVal, 0), 100);
+        }
+        
+        const cell = document.createElement('div');
+        cell.className = 'graph-cell';
+
+        let displayText = "";
+        if (data.text !== "") {
+          displayText = data.text;
+          if (data.type === 'percent') displayText += '%';
+          if (data.type === 'currency') displayText = '$' + displayText;
+        }
+        
+        cell.innerHTML = generateSVG(displayText, color, fillPercent, data.type === 'text' || data.type === 'currency');
+
+        container.appendChild(cell);
+      });
+
+      // Render the static right side goals after the graphs
+      renderGoals();
+    }
+
+    function renderDeptGraphs() {
+      const container = document.getElementById('deptGrid');
+      container.innerHTML = '';
+
+      deptData.forEach(item => {
+        const cell = document.createElement('div');
+        cell.className = 'dept-card';
+        
+        let displayText = "";
+        if (item.text !== "") {
+          displayText = item.type === 'percent' ? item.text + '%' : item.text;
+        }
+        
+        cell.innerHTML = `
+          <div class="dept-card-title">${item.name}</div>
+          <div class="dept-card-value" style="display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: clamp(24px, 4vw, 46px); color: #041e42; height: 100%;">
+            ${displayText}
+          </div>
+        `;
+
+        container.appendChild(cell);
+      });
+    }
+
+    // Image Upload Fallback
+    function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const view = document.getElementById('viewSelect').value;
+          if (view === 'fulfillment') {
+            document.getElementById('fulfillment-bg').src = e.target.result;
+          } else {
+            document.getElementById('department-bg').src = e.target.result;
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    // View Toggler
+    function toggleView() {
+      const view = document.getElementById('viewSelect').value;
+      if (view === 'fulfillment') {
+        document.getElementById('fulfillmentControlsWrapper').style.display = 'block';
+        document.getElementById('fulfillmentContainer').style.display = 'block';
+        document.getElementById('departmentControlsWrapper').style.display = 'none';
+        document.getElementById('departmentContainer').style.display = 'none';
+      } else {
+        document.getElementById('fulfillmentControlsWrapper').style.display = 'none';
+        document.getElementById('fulfillmentContainer').style.display = 'none';
+        document.getElementById('departmentControlsWrapper').style.display = 'block';
+        document.getElementById('departmentContainer').style.display = 'block';
+      }
+    }
+
+    // HTML2Canvas Export
+    function exportGraphic() {
+      const view = document.getElementById('viewSelect').value;
+      const containerId = view === 'fulfillment' ? 'fulfillmentContainer' : 'departmentContainer';
+      const container = document.getElementById(containerId);
+      const exportName = view === 'fulfillment' ? 'Walmart_Fulfillment_Metrics.png' : 'Walmart_Department_Metrics.png';
+
+      // Temporarily force exact dimensions for a 2752x1536 export (1376x768 @ 2x scale)
+      const originalWidth = container.style.width;
+      const originalMaxWidth = container.style.maxWidth;
+      const originalMinWidth = container.style.minWidth;
+      const originalHeight = container.style.height;
+      const originalMinHeight = container.style.minHeight;
+      const originalAspect = container.style.aspectRatio;
+
+      container.style.width = '1376px';
+      container.style.maxWidth = '1376px';
+      container.style.minWidth = '1376px';
+      container.style.height = '768px';
+      container.style.minHeight = '768px';
+      container.style.aspectRatio = 'auto'; // Remove 16:9 to strictly respect the exact W/H
+
+      setTimeout(() => {
+        html2canvas(container, {
+          scale: 2, 
+          useCORS: true,
+          backgroundColor: null,
+          windowWidth: 1376,
+          windowHeight: 768
+        }).then(canvas => {
+          // Restore original states
+          container.style.width = originalWidth;
+          container.style.maxWidth = originalMaxWidth;
+          container.style.minWidth = originalMinWidth;
+          container.style.height = originalHeight;
+          container.style.minHeight = originalMinHeight;
+          container.style.aspectRatio = originalAspect;
+
+          const link = document.createElement('a');
+          link.download = exportName;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        });
+      }, 100);
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
