@@ -357,7 +357,7 @@
       bottom: -0.5%; /* Shifted down ~20px to center in the bottom area */
       left: 2.5%;
       color: var(--walmart-navy);
-      font-size: clamp(20px, 2.5vw, 32px); /* Scaled down slightly */
+      font-size: clamp(8px, 2vw, 32px); /* Lowered minimum for mobile scaling */
       font-family: 'Bogle', 'Helvetica Neue', Helvetica, Arial, sans-serif;
       font-weight: 900;
       z-index: 5;
@@ -443,7 +443,7 @@
   <script>
     // --- APP VERSION ---
     // Change this string whenever you push an update to GitHub to force users' browsers to reload!
-    const APP_VERSION = "1.0.14";
+    const APP_VERSION = "1.0.15";
     
     // PWA Version Checker
     async function checkForUpdates() {
