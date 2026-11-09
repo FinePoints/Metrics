@@ -43,45 +43,35 @@
     .toolbar {
       width: 100%;
       background-color: var(--walmart-blue);
-      padding: 12px 20px;
+      padding: 0 20px;
+      height: 65px; /* Locked exactly to 65px */
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 20px;
       box-sizing: border-box;
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
       z-index: 10;
     }
 
-    .toolbar-group {
+    .toolbar-logo {
+      height: 45px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    /* Bottom Upload Control */
+    .bottom-upload-container {
+      margin: 30px auto 50px auto;
       display: flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(255,255,255,0.1);
-      padding: 8px 12px;
-      border-radius: 6px;
-      color: white;
-      font-weight: 500;
-    }
-
-    .toolbar button {
-      background-color: var(--walmart-yellow);
-      color: #000;
-      border: none;
-      padding: 10px 20px;
-      font-size: 14px;
-      font-weight: bold;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-
-    .toolbar button:hover {
-      background-color: #e3a918;
+      justify-content: center;
+      width: 100%;
+      padding: 0 20px;
+      box-sizing: border-box;
     }
 
     input[type="file"] {
-      font-size: 13px;
+      font-size: 14px;
+      cursor: pointer;
     }
 
     /* Main Container (16:9) */
@@ -460,10 +450,7 @@
   </div>
 
   <div class="toolbar" id="toolbar">
-    <div class="toolbar-group">
-      <label for="imageUpload">Fallback Background Image: </label>
-      <input type="file" id="imageUpload" accept="image/*" onchange="handleImageUpload(event)">
-    </div>
+    <img src="555.jpg" class="toolbar-logo" alt="Slide Metrics">
   </div>
 
   <!-- Mobile-Friendly Controls Panel -->
@@ -559,10 +546,15 @@
     </div>
   </div>
 
+  <!-- Fallback Image Upload at the Bottom -->
+  <div class="bottom-upload-container">
+    <input type="file" id="imageUpload" accept="image/*" onchange="handleImageUpload(event)">
+  </div>
+
   <script>
     // --- APP VERSION ---
     // Change this string whenever you push an update to GitHub to force users' browsers to reload!
-    const APP_VERSION = "1.0.35";
+    const APP_VERSION = "1.0.43";
     
     // PWA Version Checker
     async function checkForUpdates() {
