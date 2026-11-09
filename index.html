@@ -105,11 +105,10 @@
     /* Grid Layout for Overlays */
     .dashboard-grid {
       position: absolute;
-      top: 35.5%; /* Adjusted down slightly (~10px) to center inside white boxes */
-      width: 43.2%; /* Derived from left side bounds: 4.1% to 47.3% */
-      height: 53%;  /* Derived from top bounds: 36.5% to 89.5% */
+      top: 35.5%;
+      width: 43.2%;
+      height: 53%;
       display: grid;
-      /* Precisely matching the 14% absolute width/height sizes */
       grid-template-columns: repeat(3, 32.407%);
       grid-template-rows: repeat(3, 26.415%);
       justify-content: space-between;
@@ -181,7 +180,6 @@
       margin: 20px auto;
       padding: 0 15px 40px 15px;
       box-sizing: border-box;
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     }
 
     details {
@@ -204,11 +202,11 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      list-style: none; /* Hides default arrow in some browsers */
+      list-style: none;
     }
 
     summary::-webkit-details-marker {
-      display: none; /* Hides default arrow in Safari/Chrome */
+      display: none;
     }
 
     summary::after {
@@ -311,6 +309,7 @@
       grid-template-rows: repeat(3, 1fr);
       gap: 10px;
       z-index: 2;
+      container-type: inline-size;
     }
 
     .dept-card {
@@ -325,7 +324,7 @@
     }
 
     .dept-card-title {
-      font-size: 16px;
+      font-size: clamp(14px, 3cqw, 28px);
       font-weight: bold;
       color: var(--walmart-navy);
       margin-bottom: 5px;
@@ -346,10 +345,10 @@
     /* Week Number Display */
     .week-display {
       position: absolute;
-      bottom: -0.5%; /* Shifted down ~20px to center in the bottom area */
+      bottom: -0.5%;
       left: 2.5%;
       color: var(--walmart-navy);
-      font-size: clamp(20px, 2.5vw, 32px); /* Scaled down slightly */
+      font-size: clamp(20px, 2.5vw, 32px);
       font-family: 'Bogle', 'Helvetica Neue', Helvetica, Arial, sans-serif;
       font-weight: 900;
       z-index: 5;
@@ -429,21 +428,17 @@
   <script>
     // --- APP VERSION ---
     // Change this string whenever you push an update to GitHub to force users' browsers to reload!
-    const APP_VERSION = "1.0.0";
+    const APP_VERSION = "1.0.3";
     
     // PWA Version Checker
     async function checkForUpdates() {
       try {
-        // Fetch the current page bypassing the browser cache
         const url = window.location.href.split('?')[0]; 
         const response = await fetch(url + '?nocache=' + new Date().getTime(), { cache: 'no-store' });
         const text = await response.text();
-        
-        // Extract the version from the fetched text
         const match = text.match(/const APP_VERSION\s*=\s*["']([^"']+)["']/);
         if (match && match[1] !== APP_VERSION) {
           console.log(`Update found! Current: ${APP_VERSION}, New: ${match[1]}. Reloading...`);
-          // Use location.replace with cache-busting string to force new load
           window.location.replace(url + '?v=' + match[1]);
         }
       } catch (e) {
@@ -473,8 +468,8 @@
       { text: "95", type: "percent" },
       { text: "100", type: "percent" },
       { text: "5", type: "time" },
-      { text: "", type: "currency" }, // Empty by default per the background image layout
-      { text: "", type: "text" }  // Empty by default per the background image layout
+      { text: "", type: "currency" },
+      { text: "", type: "text" }
     ];
 
     // Starting data state for Department Metrics
@@ -493,12 +488,12 @@
       "Scan Stage", "Quality Checks", "Wait Time", "Sales WK", "Total Orders WK"
     ];
 
-    const svgCircumference = Math.PI * 80; // Radius increased from 65 to 80 to widen the arc
+    const svgCircumference = Math.PI * 80;
     const dashArray = svgCircumference;
 
     function init() {
-      checkForUpdates(); // Check for a new version as soon as the app loads
-      setInterval(checkForUpdates, 1000 * 60 * 60); // Re-check every hour if left open
+      checkForUpdates();
+      setInterval(checkForUpdates, 1000 * 60 * 60);
 
       initControls();
       renderGraphs();
@@ -513,7 +508,6 @@
         const isPercent = cellsData[index].type === 'percent';
         const isCurrency = cellsData[index].type === 'currency';
         
-        // Performance Input Group
         const perfGroup = document.createElement('div');
         perfGroup.className = 'control-group';
         
@@ -532,7 +526,6 @@
         `;
         perfContainer.appendChild(perfGroup);
 
-        // Goal Input Group (Skip index 7 & 8 since they are visually empty on the Goals side in the image)
         if (index < 7) {
           const goalGroup = document.createElement('div');
           goalGroup.className = 'control-group';
@@ -554,14 +547,12 @@
         }
       });
 
-      // Initialize Department Controls
       const deptContainer = document.getElementById('deptControls');
       deptData.forEach((item, index) => {
         const isPercent = item.type === 'percent';
         const group = document.createElement('div');
         group.className = 'control-group';
         
-        // Total Headcount (index 6) should be readonly and auto-calculated
         const isReadonly = index === 6 ? 'readonly disabled style="background-color: #e9ecef; cursor: not-allowed;"' : '';
         
         const inputHtml = isPercent 
@@ -576,7 +567,6 @@
       });
     }
 
-    // Helper to strip non-numeric characters and allow only one decimal point
     function formatNumberInput(input) {
       let val = input.value.replace(/[^0-9.]/g, '');
       const parts = val.split('.');
@@ -599,16 +589,13 @@
     function updateDeptData(index, value) {
       deptData[index].text = value;
 
-      // Auto calculate Total Headcount (Index 6) from FT (Index 4) and PT (Index 5)
       if (index === 4 || index === 5) {
         const ft = parseInt(deptData[4].text) || 0;
         const pt = parseInt(deptData[5].text) || 0;
         
-        // Only show total if at least one field has data
         const hasValue = deptData[4].text !== "" || deptData[5].text !== "";
         deptData[6].text = hasValue ? (ft + pt).toString() : "";
         
-        // Update the visual input field directly
         const totalInput = document.getElementById('dept-input-6');
         if (totalInput) {
           totalInput.value = deptData[6].text;
@@ -619,7 +606,6 @@
     }
 
     function updateWeekNumber(val) {
-      // Strip any non-numeric characters so typing "Week 23" or just "23" both resolve correctly
       const num = val.replace(/[^0-9]/g, '');
       const displayVal = num ? `Week ${num}` : '';
       
@@ -635,17 +621,17 @@
     function getColor(value, target, type) {
       const diff = value - target;
       if (type === "percent") {
-        if (diff >= 0) return "#1ae81a"; // Green
-        if (diff >= -2) return "#ffc107"; // Yellow (1-2% below)
-        if (diff >= -4) return "#ff9800"; // Orange (3-4% below)
-        return "#f44336"; // Red (5%+ below)
+        if (diff >= 0) return "#1ae81a";
+        if (diff >= -2) return "#ffc107";
+        if (diff >= -4) return "#ff9800";
+        return "#f44336";
       } else if (type === "time") {
-        if (diff <= 0) return "#1ae81a"; // Green (At or under goal)
-        if (diff <= 2) return "#ffc107"; // Yellow (1-2 mins over)
-        if (diff <= 4) return "#ff9800"; // Orange (3-4 mins over)
-        return "#f44336"; // Red (5+ mins over)
+        if (diff <= 0) return "#1ae81a";
+        if (diff <= 2) return "#ffc107";
+        if (diff <= 4) return "#ff9800";
+        return "#f44336";
       }
-      return "#1ae81a"; // Fallback Green
+      return "#1ae81a";
     }
 
     function generateSVG(text, color, fillPercent, isTextOnly) {
@@ -675,7 +661,6 @@
         const cell = document.createElement('div');
         cell.className = 'goal-cell';
 
-        // Only render if there is text (leaves bottom two boxes empty if desired)
         if (data.text !== "") {
           let displayText = data.text;
           if (data.type === 'percent') displayText += '%';
@@ -702,7 +687,6 @@
         
         const color = getColor(parsedVal, parsedTarget, data.type);
         
-        // Calculate gauge fill based on metric type and current dynamic goal
         let fillPercent;
         if (data.text === "") {
           fillPercent = 0;
@@ -711,10 +695,9 @@
           if (diff <= 0) {
             fillPercent = 100;
           } else if (diff < 5) {
-            // Shrink by 20% for each minute over the goal
             fillPercent = 100 - (diff * 20);
           } else {
-            fillPercent = 100; // >= 5 mins over goal snaps back to 100% red
+            fillPercent = 100;
           }
         } else {
           fillPercent = Math.min(Math.max(parsedVal, 0), 100);
@@ -735,7 +718,6 @@
         container.appendChild(cell);
       });
 
-      // Render the static right side goals after the graphs
       renderGoals();
     }
 
@@ -754,7 +736,7 @@
         
         cell.innerHTML = `
           <div class="dept-card-title">${item.name}</div>
-          <div class="dept-card-value" style="display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: clamp(24px, 4vw, 46px); color: #041e42; height: 100%;">
+          <div class="dept-card-value" style="display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: clamp(24px, 7cqw, 64px); color: #041e42; height: 100%;">
             ${displayText}
           </div>
         `;
@@ -763,7 +745,6 @@
       });
     }
 
-    // Image Upload Fallback
     function handleImageUpload(event) {
       const file = event.target.files[0];
       if (file) {
@@ -780,7 +761,6 @@
       }
     }
 
-    // View Toggler
     function toggleView() {
       const view = document.getElementById('viewSelect').value;
       if (view === 'fulfillment') {
@@ -796,14 +776,12 @@
       }
     }
 
-    // HTML2Canvas Export
     function exportGraphic() {
       const view = document.getElementById('viewSelect').value;
       const containerId = view === 'fulfillment' ? 'fulfillmentContainer' : 'departmentContainer';
       const container = document.getElementById(containerId);
       const exportName = view === 'fulfillment' ? 'Walmart_Fulfillment_Metrics.png' : 'Walmart_Department_Metrics.png';
 
-      // Temporarily force exact dimensions for a 2752x1536 export (1376x768 @ 2x scale)
       const originalWidth = container.style.width;
       const originalMaxWidth = container.style.maxWidth;
       const originalMinWidth = container.style.minWidth;
@@ -816,7 +794,7 @@
       container.style.minWidth = '1376px';
       container.style.height = '768px';
       container.style.minHeight = '768px';
-      container.style.aspectRatio = 'auto'; // Remove 16:9 to strictly respect the exact W/H
+      container.style.aspectRatio = 'auto';
 
       setTimeout(() => {
         html2canvas(container, {
@@ -826,7 +804,6 @@
           windowWidth: 1376,
           windowHeight: 768
         }).then(canvas => {
-          // Restore original states
           container.style.width = originalWidth;
           container.style.maxWidth = originalMaxWidth;
           container.style.minWidth = originalMinWidth;
