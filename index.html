@@ -363,6 +363,73 @@
       z-index: 5;
     }
 
+    /* Associate Performance Styles */
+    .assoc-header {
+      position: absolute;
+      top: calc(21.5% + 5px); /* Dropped down 5px */
+      left: 3.5%;
+      width: 58.5%;
+      height: 6.5%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: clamp(14px, 2.5vw, 36px);
+      font-weight: bold;
+      z-index: 2;
+    }
+    .assoc-box {
+      position: absolute;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      padding: 1.5%;
+      box-sizing: border-box;
+    }
+    .assoc-box-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: clamp(12px, 1.8vw, 32px);
+      color: var(--walmart-navy);
+      margin-bottom: 5%;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 4%;
+    }
+    .assoc-list {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      justify-content: space-evenly;
+      gap: 2%;
+    }
+    .box-stagers .assoc-list, .box-preppers .assoc-list {
+      gap: 10%;
+      justify-content: flex-start;
+    }
+    .assoc-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: clamp(8px, 1.2vw, 24px);
+      font-weight: bold;
+      color: var(--walmart-navy);
+    }
+    .assoc-name {
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      padding-right: 10px;
+    }
+    .assoc-val {
+      text-align: right;
+      min-width: 20%;
+    }
+    .box-pickers { top: 30.5%; left: 4.5%; width: 18%; height: 58%; }
+    .box-dispensers { top: 30.5%; left: 23.8%; width: 18%; height: 58%; }
+    .box-stagers { top: 30.5%; left: 43.1%; width: 18%; height: 28%; }
+    .box-preppers { top: 60.5%; left: 43.1%; width: 18%; height: 28%; }
+
     /* Toast Notification */
     #toast {
       visibility: hidden;
@@ -417,6 +484,7 @@
         <select id="viewSelect" onchange="toggleView()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; font-weight: bold; font-size: 14px; cursor: pointer; color: var(--walmart-navy); background-color: #f8f9fa;">
           <option value="fulfillment">Fulfillment Metrics</option>
           <option value="department">Department Metrics</option>
+          <option value="associate">Associate Performance</option>
         </select>
       </div>
       <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -430,7 +498,7 @@
 
     <!-- Fulfillment Controls -->
     <div id="fulfillmentControlsWrapper">
-      <details open>
+      <details>
         <summary>Performance Overview</summary>
         <div class="controls-grid" id="perfControls"></div>
       </details>
@@ -443,9 +511,29 @@
 
     <!-- Department Controls -->
     <div id="departmentControlsWrapper" style="display: none;">
-      <details open>
+      <details>
         <summary>Department Metrics</summary>
         <div class="controls-grid" id="deptControls"></div>
+      </details>
+    </div>
+
+    <!-- Associate Controls -->
+    <div id="associateControlsWrapper" style="display: none;">
+      <details open>
+        <summary>Top Pickers</summary>
+        <div class="controls-grid" id="assoc-pickers-controls"></div>
+      </details>
+      <details>
+        <summary>Top Dispensers</summary>
+        <div class="controls-grid" id="assoc-dispensers-controls"></div>
+      </details>
+      <details>
+        <summary>Top Stagers</summary>
+        <div class="controls-grid" id="assoc-stagers-controls"></div>
+      </details>
+      <details>
+        <summary>Top Preppers</summary>
+        <div class="controls-grid" id="assoc-preppers-controls"></div>
       </details>
     </div>
 
@@ -466,12 +554,23 @@
       <div id="departmentWeek" class="week-display"></div>
       <div id="deptGrid" class="dept-grid"></div>
     </div>
+
+    <!-- Associate Viewer -->
+    <div class="container" id="associateContainer" style="display: none; width: 100%; aspect-ratio: 16/9; position: relative;">
+      <img id="associate-bg" class="bg-image" src="associatedash.jpg" onerror="this.onerror=null;this.src='https://placehold.co/1920x1080/f4f6f8/a0aab5?text=Please+Upload+Background+Image';" alt="background">
+      <div id="associateWeek" class="week-display"></div>
+      <div class="assoc-header">Top Performing Associates</div>
+      <div id="assoc-pickers" class="assoc-box box-pickers"></div>
+      <div id="assoc-dispensers" class="assoc-box box-dispensers"></div>
+      <div id="assoc-stagers" class="assoc-box box-stagers"></div>
+      <div id="assoc-preppers" class="assoc-box box-preppers"></div>
+    </div>
   </div>
 
   <script>
     // --- APP VERSION ---
     // Change this string whenever you push an update to GitHub to force users' browsers to reload!
-    const APP_VERSION = "1.0.18";
+    const APP_VERSION = "1.0.23";
     
     // PWA Version Checker
     async function checkForUpdates() {
@@ -529,6 +628,14 @@
       { name: "Total Headcount", text: "", type: "number" }
     ];
 
+    // Starting data state for Associate Performance
+    let associateData = {
+      pickers: Array.from({length: 10}, () => ({name: "", value: ""})),
+      dispensers: Array.from({length: 10}, () => ({name: "", value: ""})),
+      stagers: Array.from({length: 2}, () => ({name: "", value: ""})),
+      preppers: Array.from({length: 2}, () => ({name: "", value: ""}))
+    };
+
     const metricNames = [
       "On-Time Pick", "First-Time Pick", "PreSub", "PostSub", 
       "Scan Stage", "Quality Checks", "Wait Time", "Sales WK", "Total Orders WK"
@@ -580,6 +687,7 @@
       initControls();
       renderGraphs();
       renderDeptGraphs();
+      renderAssocGraphs();
     }
 
     function initControls() {
@@ -653,6 +761,33 @@
         `;
         deptContainer.appendChild(group);
       });
+
+      // Initialize Associate Controls
+      ['pickers', 'dispensers', 'stagers', 'preppers'].forEach(group => {
+        const container = document.getElementById(`assoc-${group}-controls`);
+        
+        // Setup 2-column top-down flow for the 10-item lists
+        if (group === 'pickers' || group === 'dispensers') {
+          container.style.display = 'grid';
+          container.style.gridTemplateRows = 'repeat(5, auto)';
+          container.style.gridTemplateColumns = '1fr 1fr';
+          container.style.gridAutoFlow = 'column';
+          container.style.gap = '15px';
+        }
+
+        associateData[group].forEach((item, index) => {
+          const div = document.createElement('div');
+          div.className = 'control-group';
+          div.innerHTML = `
+            <label>#${index + 1}</label>
+            <div style="display: flex; gap: 4px;">
+              <input type="text" placeholder="Name" value="${item.name}" oninput="updateAssoc('${group}', ${index}, 'name', this.value)" style="flex: 2;">
+              <input type="text" inputmode="decimal" placeholder="Score" value="${item.value}" oninput="updateAssoc('${group}', ${index}, 'value', this.value)" style="flex: 1;">
+            </div>
+          `;
+          container.appendChild(div);
+        });
+      });
     }
 
     function formatNumberInput(input) {
@@ -694,12 +829,18 @@
       renderDeptGraphs();
     }
 
+    function updateAssoc(group, index, field, value) {
+      associateData[group][index][field] = value;
+      renderAssocGraphs();
+    }
+
     function updateWeekNumber(val) {
       const num = val.replace(/[^0-9]/g, '');
       const displayVal = num ? `Week ${num}` : '';
       
       document.getElementById('fulfillmentWeek').innerText = displayVal;
       document.getElementById('departmentWeek').innerText = displayVal;
+      document.getElementById('associateWeek').innerText = displayVal;
     }
 
     function parseValue(text) {
@@ -742,6 +883,84 @@
       `;
     }
 
+    function renderGraphs() {
+      const container = document.getElementById('leftGrid');
+      container.innerHTML = '';
+
+      cellsData.forEach((data, index) => {
+        const parsedVal = parseValue(data.text);
+        const parsedTarget = parseValue(goalsData[index].text);
+        
+        const color = getColor(parsedVal, parsedTarget, data.type);
+        
+        // Calculate gauge fill based on metric type and current dynamic goal
+        let fillPercent;
+        if (data.text === "") {
+          fillPercent = 0;
+        } else if (data.type === 'time') {
+          const diff = parsedVal - parsedTarget;
+          if (diff <= 0) {
+            fillPercent = 100;
+          } else if (diff < 5) {
+            // Shrink by 20% for each minute over the goal
+            fillPercent = 100 - (diff * 20);
+          } else {
+            fillPercent = 100; // >= 5 mins over goal snaps back to 100% red
+          }
+        } else {
+          fillPercent = Math.min(Math.max(parsedVal, 0), 100);
+        }
+        
+        const cell = document.createElement('div');
+        cell.className = 'graph-cell';
+
+        let displayText = "";
+        if (data.text !== "") {
+          displayText = data.text;
+          if (data.type === 'percent') displayText += '%';
+          if (data.type === 'currency') displayText = '$' + displayText;
+        }
+        
+        cell.innerHTML = generateSVG(displayText, color, fillPercent, data.type === 'text' || data.type === 'currency');
+
+        container.appendChild(cell);
+      });
+
+      // Render the static right side goals after the graphs
+      renderGoals();
+    }
+
+    function renderDeptGraphs() {
+      const container = document.getElementById('deptGrid');
+      container.innerHTML = '';
+
+      deptData.forEach(item => {
+        const cell = document.createElement('div');
+        
+        if (item.type === 'placeholder') {
+          cell.style.visibility = 'hidden';
+          container.appendChild(cell);
+          return;
+        }
+        
+        cell.className = 'dept-card';
+        
+        let displayText = "";
+        if (item.text !== "") {
+          displayText = item.type === 'percent' ? item.text + '%' : item.text;
+        }
+        
+        cell.innerHTML = `
+          <div class="dept-card-title">${item.name}</div>
+          <div class="dept-card-value" style="display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: clamp(24px, 4vw, 46px); color: #041e42; height: 100%;">
+            ${displayText}
+          </div>
+        `;
+
+        container.appendChild(cell);
+      });
+    }
+
     function renderGoals() {
       const container = document.getElementById('rightGrid');
       container.innerHTML = '';
@@ -766,72 +985,29 @@
       });
     }
 
-    function renderGraphs() {
-      const container = document.getElementById('leftGrid');
-      container.innerHTML = '';
+    function renderAssocGraphs() {
+      const titles = {
+        pickers: 'Top Pickers',
+        dispensers: 'Top Dispensers',
+        stagers: 'Top Stagers',
+        preppers: 'Top Preppers'
+      };
 
-      cellsData.forEach((data, index) => {
-        const parsedVal = parseValue(data.text);
-        const parsedTarget = parseValue(goalsData[index].text);
-        
-        const color = getColor(parsedVal, parsedTarget, data.type);
-        
-        let fillPercent;
-        if (data.text === "") {
-          fillPercent = 0;
-        } else if (data.type === 'time') {
-          const diff = parsedVal - parsedTarget;
-          if (diff <= 0) {
-            fillPercent = 100;
-          } else if (diff < 5) {
-            fillPercent = 100 - (diff * 20);
-          } else {
-            fillPercent = 100;
-          }
-        } else {
-          fillPercent = Math.min(Math.max(parsedVal, 0), 100);
-        }
-        
-        const cell = document.createElement('div');
-        cell.className = 'graph-cell';
+      ['pickers', 'dispensers', 'stagers', 'preppers'].forEach(group => {
+        const container = document.getElementById(`assoc-${group}`);
+        let rowsHtml = associateData[group].map(item => `
+          <div class="assoc-row">
+            <span class="assoc-name">${item.name}</span>
+            <span class="assoc-val">${item.value}</span>
+          </div>
+        `).join('');
 
-        let displayText = "";
-        if (data.text !== "") {
-          displayText = data.text;
-          if (data.type === 'percent') displayText += '%';
-          if (data.type === 'currency') displayText = '$' + displayText;
-        }
-        
-        cell.innerHTML = generateSVG(displayText, color, fillPercent, data.type === 'text' || data.type === 'currency');
-        container.appendChild(cell);
-      });
-
-      renderGoals();
-    }
-
-    function renderDeptGraphs() {
-      const container = document.getElementById('deptGrid');
-      container.innerHTML = '';
-
-      deptData.forEach(item => {
-        const cell = document.createElement('div');
-        cell.className = 'dept-card';
-        
-        if (item.type !== 'placeholder') {
-          let displayText = "";
-          if (item.text !== "") {
-            displayText = item.type === 'percent' ? item.text + '%' : item.text;
-          }
-            
-          cell.innerHTML = `
-            <div class="dept-card-title">${item.name}</div>
-            <div class="dept-card-value" style="font-weight: bold; font-size: clamp(10px, 4vw, 46px); color: #041e42;">
-              ${displayText}
-            </div>
-          `;
-        }
-        
-        container.appendChild(cell);
+        container.innerHTML = `
+          <div class="assoc-box-title">${titles[group]}</div>
+          <div class="assoc-list">
+            ${rowsHtml}
+          </div>
+        `;
       });
     }
 
@@ -843,8 +1019,10 @@
           const view = document.getElementById('viewSelect').value;
           if (view === 'fulfillment') {
             document.getElementById('fulfillment-bg').src = e.target.result;
-          } else {
+          } else if (view === 'department') {
             document.getElementById('department-bg').src = e.target.result;
+          } else {
+            document.getElementById('associate-bg').src = e.target.result;
           }
         };
         reader.readAsDataURL(file);
@@ -853,17 +1031,22 @@
 
     function toggleView() {
       const view = document.getElementById('viewSelect').value;
-      if (view === 'fulfillment') {
-        document.getElementById('fulfillmentControlsWrapper').style.display = 'block';
-        document.getElementById('fulfillmentContainer').style.display = 'block';
-        document.getElementById('departmentControlsWrapper').style.display = 'none';
-        document.getElementById('departmentContainer').style.display = 'none';
-      } else {
-        document.getElementById('fulfillmentControlsWrapper').style.display = 'none';
-        document.getElementById('fulfillmentContainer').style.display = 'none';
-        document.getElementById('departmentControlsWrapper').style.display = 'block';
-        document.getElementById('departmentContainer').style.display = 'block';
-      }
+      
+      const fWrap = document.getElementById('fulfillmentControlsWrapper');
+      const dWrap = document.getElementById('departmentControlsWrapper');
+      const aWrap = document.getElementById('associateControlsWrapper');
+      
+      const fCont = document.getElementById('fulfillmentContainer');
+      const dCont = document.getElementById('departmentContainer');
+      const aCont = document.getElementById('associateContainer');
+
+      fWrap.style.display = view === 'fulfillment' ? 'block' : 'none';
+      dWrap.style.display = view === 'department' ? 'block' : 'none';
+      aWrap.style.display = view === 'associate' ? 'block' : 'none';
+
+      fCont.style.display = view === 'fulfillment' ? 'block' : 'none';
+      dCont.style.display = view === 'department' ? 'block' : 'none';
+      aCont.style.display = view === 'associate' ? 'block' : 'none';
     }
 
     function showToast(msg) {
@@ -890,7 +1073,7 @@
           showToast("Please fill in all Fulfillment Metrics & Goals.");
           return;
         }
-      } else {
+      } else if (view === 'department') {
         const deptIncomplete = deptData.some(d => d.type !== 'placeholder' && d.text.trim() === "");
         if (deptIncomplete) {
           showToast("Please fill in all Department Metrics.");
@@ -898,9 +1081,14 @@
         }
       }
 
-      const containerId = view === 'fulfillment' ? 'fulfillmentContainer' : 'departmentContainer';
+      const containerId = view === 'fulfillment' ? 'fulfillmentContainer' : 
+                          view === 'department' ? 'departmentContainer' : 
+                          'associateContainer';
+      const exportName = view === 'fulfillment' ? 'Walmart_Fulfillment_Metrics.png' : 
+                         view === 'department' ? 'Walmart_Department_Metrics.png' : 
+                         'Walmart_Associate_Performance.png';
+
       const container = document.getElementById(containerId);
-      const exportName = view === 'fulfillment' ? 'Walmart_Fulfillment_Metrics.png' : 'Walmart_Department_Metrics.png';
 
       const originalWidth = container.style.width;
       const originalMaxWidth = container.style.maxWidth;
