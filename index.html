@@ -562,7 +562,7 @@
   <script>
     // --- APP VERSION ---
     // Change this string whenever you push an update to GitHub to force users' browsers to reload!
-    const APP_VERSION = "1.0.34";
+    const APP_VERSION = "1.0.35";
     
     // PWA Version Checker
     async function checkForUpdates() {
@@ -782,10 +782,14 @@
         }
 
         associateData[group].forEach((item, index) => {
+          // Label logic to mark spots 6-10 as Optional
+          const isOptional = (group === 'pickers' || group === 'dispensers') && index >= 5;
+          const labelText = isOptional ? `#${index + 1} (Optional)` : `#${index + 1}`;
+
           const div = document.createElement('div');
           div.className = 'control-group';
           div.innerHTML = `
-            <label>#${index + 1}</label>
+            <label>${labelText}</label>
             <div style="display: flex; flex-direction: column; gap: 6px;">
               <input type="text" placeholder="Name" value="${item.name}" oninput="updateAssoc('${group}', ${index}, 'name', this.value)">
               <input type="text" inputmode="decimal" placeholder="Score" value="${item.value}" oninput="updateAssoc('${group}', ${index}, 'value', this.value)">
@@ -1086,6 +1090,17 @@
         const deptIncomplete = deptData.some(d => d.type !== 'placeholder' && d.text.trim() === "");
         if (deptIncomplete) {
           showToast("Please fill in all Department Metrics.");
+          return;
+        }
+      } else if (view === 'associate') {
+        // Enforce top 5 Pickers and Dispensers, and all 2 Stagers and Preppers
+        const pickersIncomplete = associateData.pickers.slice(0, 5).some(a => a.name.trim() === "" || a.value.trim() === "");
+        const dispensersIncomplete = associateData.dispensers.slice(0, 5).some(a => a.name.trim() === "" || a.value.trim() === "");
+        const stagersIncomplete = associateData.stagers.some(a => a.name.trim() === "" || a.value.trim() === "");
+        const preppersIncomplete = associateData.preppers.some(a => a.name.trim() === "" || a.value.trim() === "");
+
+        if (pickersIncomplete || dispensersIncomplete || stagersIncomplete || preppersIncomplete) {
+          showToast("Please fill in all Required Top Performers (Top 5 for Pickers/Dispensers, and all Stagers/Preppers).");
           return;
         }
       }
