@@ -324,7 +324,7 @@
     }
 
     .dept-card-title {
-      font-size: clamp(14px, 3cqw, 28px);
+      font-size: clamp(6px, 1.5vw, 16px);
       font-weight: bold;
       color: var(--walmart-navy);
       margin-bottom: 5px;
@@ -348,7 +348,7 @@
       bottom: -0.5%;
       left: 2.5%;
       color: var(--walmart-navy);
-      font-size: clamp(20px, 2.5vw, 32px);
+      font-size: clamp(6px, 2.5vw, 32px);
       font-family: 'Bogle', 'Helvetica Neue', Helvetica, Arial, sans-serif;
       font-weight: 900;
       z-index: 5;
@@ -428,7 +428,7 @@
   <script>
     // --- APP VERSION ---
     // Change this string whenever you push an update to GitHub to force users' browsers to reload!
-    const APP_VERSION = "1.0.3";
+    const APP_VERSION = "1.0.5";
     
     // PWA Version Checker
     async function checkForUpdates() {
@@ -736,7 +736,7 @@
         
         cell.innerHTML = `
           <div class="dept-card-title">${item.name}</div>
-          <div class="dept-card-value" style="display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: clamp(24px, 7cqw, 64px); color: #041e42; height: 100%;">
+          <div class="dept-card-value" style="display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: clamp(10px, 4vw, 46px); color: #041e42; height: 100%;">
             ${displayText}
           </div>
         `;
