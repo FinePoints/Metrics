@@ -371,6 +371,12 @@
       <label for="imageUpload">Fallback Background Image: </label>
       <input type="file" id="imageUpload" accept="image/*" onchange="handleImageUpload(event)">
     </div>
+    <div class="toolbar-group" id="installBtnGroup" style="display: none; background: transparent; padding: 0;">
+      <button id="installBtn" onclick="installPWA()" style="background-color: #1ae81a; color: #002244; display: flex; align-items: center; gap: 5px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Install App
+      </button>
+    </div>
   </div>
 
   <!-- Mobile-Friendly Controls Panel -->
@@ -437,7 +443,7 @@
   <script>
     // --- APP VERSION ---
     // Change this string whenever you push an update to GitHub to force users' browsers to reload!
-    const APP_VERSION = "1.0.12";
+    const APP_VERSION = "1.0.13";
     
     // PWA Version Checker
     async function checkForUpdates() {
@@ -502,6 +508,42 @@
 
     const svgCircumference = Math.PI * 80;
     const dashArray = svgCircumference;
+
+    // --- PWA Installation Logic ---
+    let deferredPrompt;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent the default browser mini-infobar
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      deferredPrompt = e;
+      // Show our custom Install button
+      document.getElementById('installBtnGroup').style.display = 'flex';
+    });
+
+    async function installPWA() {
+      if (deferredPrompt) {
+        // Show the native install prompt
+        deferredPrompt.prompt();
+        // Wait for the user to respond to the prompt
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User installation prompt outcome: ${outcome}`);
+        // We can't use the prompt again, throw it away
+        deferredPrompt = null;
+        // Hide the button
+        document.getElementById('installBtnGroup').style.display = 'none';
+      }
+    }
+
+    // Register a dummy Service Worker to satisfy Chrome's PWA install requirements.
+    // NOTE: You must create an empty file named "sw.js" in your GitHub repository for this to work!
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch((err) => {
+          console.log('Service Worker registration failed (ensure sw.js exists): ', err);
+        });
+      });
+    }
 
     function init() {
       checkForUpdates();
