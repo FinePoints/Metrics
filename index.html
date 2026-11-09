@@ -362,9 +362,37 @@
       font-weight: 900;
       z-index: 5;
     }
+
+    /* Toast Notification */
+    #toast {
+      visibility: hidden;
+      min-width: 250px;
+      background-color: #f44336;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 16px 24px;
+      position: fixed;
+      z-index: 1000;
+      left: 50%;
+      top: 20px;
+      transform: translateX(-50%);
+      font-size: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      font-weight: bold;
+      opacity: 0;
+      transition: opacity 0.3s, top 0.3s;
+    }
+    #toast.show {
+      visibility: visible;
+      opacity: 1;
+      top: 70px;
+    }
   </style>
 </head>
 <body>
+
+  <div id="toast">Please fill in all fields before exporting!</div>
 
   <!-- PWA Install Banner -->
   <div id="installBanner" onclick="installPWA()" style="display: none; width: 100%; background-color: #1ae81a; color: #002244; padding: 12px 20px; text-align: center; font-weight: bold; cursor: pointer; justify-content: center; align-items: center; gap: 8px; z-index: 20; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -443,7 +471,7 @@
   <script>
     // --- APP VERSION ---
     // Change this string whenever you push an update to GitHub to force users' browsers to reload!
-    const APP_VERSION = "1.0.17";
+    const APP_VERSION = "1.0.18";
     
     // PWA Version Checker
     async function checkForUpdates() {
@@ -838,8 +866,38 @@
       }
     }
 
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.innerText = msg;
+      toast.className = "show";
+      setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+    }
+
     function exportGraphic() {
       const view = document.getElementById('viewSelect').value;
+      
+      // Validation Check: Prevent export if fields are empty
+      const weekVal = document.getElementById('weekInput').value.trim();
+      if (weekVal === "") {
+        showToast("Please enter a Week Number before exporting.");
+        return;
+      }
+
+      if (view === 'fulfillment') {
+        const perfIncomplete = cellsData.some(c => c.text.trim() === "");
+        const goalsIncomplete = goalsData.slice(0, 7).some(c => c.text.trim() === "");
+        if (perfIncomplete || goalsIncomplete) {
+          showToast("Please fill in all Fulfillment Metrics & Goals.");
+          return;
+        }
+      } else {
+        const deptIncomplete = deptData.some(d => d.type !== 'placeholder' && d.text.trim() === "");
+        if (deptIncomplete) {
+          showToast("Please fill in all Department Metrics.");
+          return;
+        }
+      }
+
       const containerId = view === 'fulfillment' ? 'fulfillmentContainer' : 'departmentContainer';
       const container = document.getElementById(containerId);
       const exportName = view === 'fulfillment' ? 'Walmart_Fulfillment_Metrics.png' : 'Walmart_Department_Metrics.png';
