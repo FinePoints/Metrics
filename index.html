@@ -366,16 +366,16 @@
 </head>
 <body>
 
+  <!-- PWA Install Banner -->
+  <div id="installBanner" onclick="installPWA()" style="display: none; width: 100%; background-color: #1ae81a; color: #002244; padding: 12px 20px; text-align: center; font-weight: bold; cursor: pointer; justify-content: center; align-items: center; gap: 8px; z-index: 20; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+    Tap here to Install App to Home Screen
+  </div>
+
   <div class="toolbar" id="toolbar">
     <div class="toolbar-group">
       <label for="imageUpload">Fallback Background Image: </label>
       <input type="file" id="imageUpload" accept="image/*" onchange="handleImageUpload(event)">
-    </div>
-    <div class="toolbar-group" id="installBtnGroup" style="display: none; background: transparent; padding: 0;">
-      <button id="installBtn" onclick="installPWA()" style="background-color: #1ae81a; color: #002244; display: flex; align-items: center; gap: 5px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        Install App
-      </button>
     </div>
   </div>
 
@@ -443,7 +443,7 @@
   <script>
     // --- APP VERSION ---
     // Change this string whenever you push an update to GitHub to force users' browsers to reload!
-    const APP_VERSION = "1.0.13";
+    const APP_VERSION = "1.0.14";
     
     // PWA Version Checker
     async function checkForUpdates() {
@@ -517,8 +517,8 @@
       e.preventDefault();
       // Stash the event so it can be triggered later.
       deferredPrompt = e;
-      // Show our custom Install button
-      document.getElementById('installBtnGroup').style.display = 'flex';
+      // Show our custom Install banner
+      document.getElementById('installBanner').style.display = 'flex';
     });
 
     async function installPWA() {
@@ -530,8 +530,8 @@
         console.log(`User installation prompt outcome: ${outcome}`);
         // We can't use the prompt again, throw it away
         deferredPrompt = null;
-        // Hide the button
-        document.getElementById('installBtnGroup').style.display = 'none';
+        // Hide the banner
+        document.getElementById('installBanner').style.display = 'none';
       }
     }
 
