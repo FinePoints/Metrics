@@ -12,8 +12,13 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Metrics Editor">
-  <!-- Inline Manifest for single-file PWA installability -->
-  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Fulfillment%20Metrics%22%2C%22short_name%22%3A%22Metrics%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f4f6f8%22%2C%22theme_color%22%3A%22%230071ce%22%2C%22start_url%22%3A%22.%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%3Bcharset%3Dutf-8%2C%253Csvg%2520xmlns%253D%2522http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg%2522%2520viewBox%253D%25220%25200%2520100%2520100%2522%253E%253Crect%2520width%253D%2522100%2525%2522%2520height%253D%2522100%2525%2522%2520fill%253D%2522%25230071ce%2522%252F%253E%253Ctext%2520x%253D%252250%2522%2520y%253D%252250%2522%2520font-family%253D%2522Arial%252C%2520sans-serif%2522%2520font-size%253D%252240%2522%2520fill%253D%2522%2523ffffff%2522%2520text-anchor%253D%2522middle%2522%2520dominant-baseline%253D%2522middle%2522%253EM%253C%252Ftext%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+  
+  <!-- PWA Manifest & Favicons -->
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="icon" href="favicon.ico">
+  <link rel="manifest" href="site.webmanifest">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
@@ -105,10 +110,11 @@
     /* Grid Layout for Overlays */
     .dashboard-grid {
       position: absolute;
-      top: 35.5%;
-      width: 43.2%;
-      height: 53%;
+      top: 35.5%; /* Adjusted down slightly (~10px) to center inside white boxes */
+      width: 43.2%; /* Derived from left side bounds: 4.1% to 47.3% */
+      height: 53%;  /* Derived from top bounds: 36.5% to 89.5% */
       display: grid;
+      /* Precisely matching the 14% absolute width/height sizes */
       grid-template-columns: repeat(3, 32.407%);
       grid-template-rows: repeat(3, 26.415%);
       justify-content: space-between;
@@ -180,6 +186,7 @@
       margin: 20px auto;
       padding: 0 15px 40px 15px;
       box-sizing: border-box;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     }
 
     details {
@@ -202,11 +209,11 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      list-style: none;
+      list-style: none; /* Hides default arrow in some browsers */
     }
 
     summary::-webkit-details-marker {
-      display: none;
+      display: none; /* Hides default arrow in Safari/Chrome */
     }
 
     summary::after {
@@ -307,48 +314,50 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       grid-template-rows: repeat(3, 1fr);
-      gap: 10px;
+      gap: 1%;
       z-index: 2;
-      container-type: inline-size;
     }
 
     .dept-card {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       text-align: center;
       font-family: Arial, sans-serif;
       width: 100%;
       height: 100%;
+      box-sizing: border-box;
     }
 
     .dept-card-title {
       font-size: clamp(6px, 1.5vw, 16px);
       font-weight: bold;
       color: var(--walmart-navy);
-      margin-bottom: 5px;
-      min-height: 40px;
+      flex: 0 0 45%;
+      width: 100%;
       display: flex;
-      align-items: center;
+      align-items: flex-end;
       justify-content: center;
+      padding-bottom: 4%;
+      box-sizing: border-box;
     }
 
     .dept-card-value {
       width: 100%;
-      height: 100%;
+      flex: 1;
       display: flex;
       justify-content: center;
-      align-items: flex-end;
+      align-items: flex-start;
     }
 
     /* Week Number Display */
     .week-display {
       position: absolute;
-      bottom: -0.5%;
+      bottom: -0.5%; /* Shifted down ~20px to center in the bottom area */
       left: 2.5%;
       color: var(--walmart-navy);
-      font-size: clamp(6px, 2.5vw, 32px);
+      font-size: clamp(20px, 2.5vw, 32px); /* Scaled down slightly */
       font-family: 'Bogle', 'Helvetica Neue', Helvetica, Arial, sans-serif;
       font-weight: 900;
       z-index: 5;
@@ -428,7 +437,7 @@
   <script>
     // --- APP VERSION ---
     // Change this string whenever you push an update to GitHub to force users' browsers to reload!
-    const APP_VERSION = "1.0.5";
+    const APP_VERSION = "1.0.12";
     
     // PWA Version Checker
     async function checkForUpdates() {
@@ -436,6 +445,7 @@
         const url = window.location.href.split('?')[0]; 
         const response = await fetch(url + '?nocache=' + new Date().getTime(), { cache: 'no-store' });
         const text = await response.text();
+        
         const match = text.match(/const APP_VERSION\s*=\s*["']([^"']+)["']/);
         if (match && match[1] !== APP_VERSION) {
           console.log(`Update found! Current: ${APP_VERSION}, New: ${match[1]}. Reloading...`);
@@ -472,12 +482,14 @@
       { text: "", type: "text" }
     ];
 
-    // Starting data state for Department Metrics
+    // Starting data state for Department Metrics (Includes placeholders to push bottom 3 down)
     let deptData = [
       { name: "Schedule to Demand", text: "", type: "percent" },
       { name: "Actual to Demand", text: "", type: "percent" },
       { name: "Digital Turnover", text: "", type: "percent" },
       { name: "Call-In Rate", text: "", type: "percent" },
+      { name: "", text: "", type: "placeholder" }, // Empty slot for 3x3 layout
+      { name: "", text: "", type: "placeholder" }, // Empty slot for 3x3 layout
       { name: "Full Time Associates", text: "", type: "number" },
       { name: "Part Time Associates", text: "", type: "number" },
       { name: "Total Headcount", text: "", type: "number" }
@@ -508,6 +520,7 @@
         const isPercent = cellsData[index].type === 'percent';
         const isCurrency = cellsData[index].type === 'currency';
         
+        // Performance Input Group
         const perfGroup = document.createElement('div');
         perfGroup.className = 'control-group';
         
@@ -526,6 +539,7 @@
         `;
         perfContainer.appendChild(perfGroup);
 
+        // Goal Input Group
         if (index < 7) {
           const goalGroup = document.createElement('div');
           goalGroup.className = 'control-group';
@@ -547,13 +561,17 @@
         }
       });
 
+      // Initialize Department Controls
       const deptContainer = document.getElementById('deptControls');
       deptData.forEach((item, index) => {
+        if (item.type === 'placeholder') return; // Skip empty layout slots
+
         const isPercent = item.type === 'percent';
         const group = document.createElement('div');
         group.className = 'control-group';
         
-        const isReadonly = index === 6 ? 'readonly disabled style="background-color: #e9ecef; cursor: not-allowed;"' : '';
+        // Total Headcount (index 8) is readonly
+        const isReadonly = index === 8 ? 'readonly disabled style="background-color: #e9ecef; cursor: not-allowed;"' : '';
         
         const inputHtml = isPercent 
           ? `<div class="input-wrapper"><input type="text" inputmode="decimal" id="dept-input-${index}" value="${item.text}" oninput="updateDeptData(${index}, formatNumberInput(this))" ${isReadonly}><span class="input-suffix">%</span></div>`
@@ -589,16 +607,17 @@
     function updateDeptData(index, value) {
       deptData[index].text = value;
 
-      if (index === 4 || index === 5) {
-        const ft = parseInt(deptData[4].text) || 0;
-        const pt = parseInt(deptData[5].text) || 0;
+      // Auto calculate Total Headcount (Index 8) from FT (Index 6) and PT (Index 7)
+      if (index === 6 || index === 7) {
+        const ft = parseInt(deptData[6].text) || 0;
+        const pt = parseInt(deptData[7].text) || 0;
         
-        const hasValue = deptData[4].text !== "" || deptData[5].text !== "";
-        deptData[6].text = hasValue ? (ft + pt).toString() : "";
+        const hasValue = deptData[6].text !== "" || deptData[7].text !== "";
+        deptData[8].text = hasValue ? (ft + pt).toString() : "";
         
-        const totalInput = document.getElementById('dept-input-6');
+        const totalInput = document.getElementById('dept-input-8');
         if (totalInput) {
-          totalInput.value = deptData[6].text;
+          totalInput.value = deptData[8].text;
         }
       }
 
@@ -714,7 +733,6 @@
         }
         
         cell.innerHTML = generateSVG(displayText, color, fillPercent, data.type === 'text' || data.type === 'currency');
-
         container.appendChild(cell);
       });
 
@@ -729,18 +747,20 @@
         const cell = document.createElement('div');
         cell.className = 'dept-card';
         
-        let displayText = "";
-        if (item.text !== "") {
-          displayText = item.type === 'percent' ? item.text + '%' : item.text;
+        if (item.type !== 'placeholder') {
+          let displayText = "";
+          if (item.text !== "") {
+            displayText = item.type === 'percent' ? item.text + '%' : item.text;
+          }
+            
+          cell.innerHTML = `
+            <div class="dept-card-title">${item.name}</div>
+            <div class="dept-card-value" style="font-weight: bold; font-size: clamp(10px, 4vw, 46px); color: #041e42;">
+              ${displayText}
+            </div>
+          `;
         }
         
-        cell.innerHTML = `
-          <div class="dept-card-title">${item.name}</div>
-          <div class="dept-card-value" style="display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: clamp(10px, 4vw, 46px); color: #041e42; height: 100%;">
-            ${displayText}
-          </div>
-        `;
-
         container.appendChild(cell);
       });
     }
