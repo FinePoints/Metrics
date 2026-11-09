@@ -61,12 +61,16 @@
 
     /* Bottom Upload Control */
     .bottom-upload-container {
-      margin: 30px auto 50px auto;
+      margin: 10px auto 20px auto;
       display: flex;
       justify-content: center;
       width: 100%;
-      padding: 0 20px;
-      box-sizing: border-box;
+      opacity: 0.3; /* Faded out to keep it hidden */
+      transition: opacity 0.3s ease;
+    }
+    
+    .bottom-upload-container:hover, .bottom-upload-container:focus-within {
+      opacity: 1; /* Fades in when interacted with */
     }
 
     input[type="file"] {
@@ -477,7 +481,7 @@
 
     <!-- Fulfillment Controls -->
     <div id="fulfillmentControlsWrapper">
-      <details>
+      <details open>
         <summary>Performance Overview</summary>
         <div class="controls-grid" id="perfControls"></div>
       </details>
@@ -490,7 +494,7 @@
 
     <!-- Department Controls -->
     <div id="departmentControlsWrapper" style="display: none;">
-      <details>
+      <details open>
         <summary>Department Metrics</summary>
         <div class="controls-grid" id="deptControls"></div>
       </details>
@@ -554,7 +558,7 @@
   <script>
     // --- APP VERSION ---
     // Change this string whenever you push an update to GitHub to force users' browsers to reload!
-    const APP_VERSION = "1.0.45";
+    const APP_VERSION = "1.0.46";
     
     // PWA Version Checker
     async function checkForUpdates() {
