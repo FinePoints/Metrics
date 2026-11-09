@@ -558,7 +558,7 @@
   <script>
     // --- APP VERSION ---
     // Change this string whenever you push an update to GitHub to force users' browsers to reload!
-    const APP_VERSION = "1.0.46";
+    const APP_VERSION = "1.0.48";
     
     // PWA Version Checker
     async function checkForUpdates() {
@@ -870,14 +870,22 @@
       return "#1ae81a";
     }
 
-    function generateSVG(text, color, fillPercent, isTextOnly) {
+    function generateSVG(text, color, fillPercent, isTextOnly, type) {
       if (isTextOnly) {
+        // Bump y to 65 to center it vertically without the gauge arc above it
+        let yPos = type === 'time' ? "65" : "85";
+        // Restore font-size to exactly 28 to match all other metrics
+        let fontSize = "28"; 
+        // Keep the dynamic performance color logic
+        let textColor = type === 'time' ? color : "#000";
+        
         return `
           <svg viewBox="0 0 200 130" width="100%" height="100%" style="overflow: visible;">
-              <text x="100" y="85" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#000" text-anchor="middle" dominant-baseline="middle">${text}</text>
+              <text x="100" y="${yPos}" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" fill="${textColor}" text-anchor="middle" dominant-baseline="middle">${text}</text>
           </svg>
         `;
       }
+      
       const dashOffset = dashArray - (dashArray * (fillPercent / 100));
       return `
         <svg viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" style="overflow: visible;">
@@ -900,34 +908,41 @@
         const color = getColor(parsedVal, parsedTarget, data.type);
         
         // Calculate gauge fill based on metric type and current dynamic goal
-        let fillPercent;
-        if (data.text === "") {
-          fillPercent = 0;
-        } else if (data.type === 'time') {
-          const diff = parsedVal - parsedTarget;
-          if (diff <= 0) {
-            fillPercent = 100;
-          } else if (diff < 5) {
-            // Shrink by 20% for each minute over the goal
-            fillPercent = 100 - (diff * 20);
+        let fillPercent = 0;
+        if (data.text !== "") {
+          if (data.type === 'time') {
+            const diff = parsedVal - parsedTarget;
+            if (diff <= 0) fillPercent = 100;
+            else if (diff < 5) fillPercent = 100 - (diff * 20);
+            else fillPercent = 100;
           } else {
-            fillPercent = 100; // >= 5 mins over goal snaps back to 100% red
+            fillPercent = Math.min(Math.max(parsedVal, 0), 100);
           }
-        } else {
-          fillPercent = Math.min(Math.max(parsedVal, 0), 100);
         }
         
         const cell = document.createElement('div');
         cell.className = 'graph-cell';
 
         let displayText = "";
+        let isTextOnly = data.type === 'text' || data.type === 'currency' || data.type === 'time';
+        
         if (data.text !== "") {
           displayText = data.text;
           if (data.type === 'percent') displayText += '%';
           if (data.type === 'currency') displayText = '$' + displayText;
+          
+          // Format Wait Time to "X Min Y Sec"
+          if (data.type === 'time') {
+            const parts = displayText.split('.');
+            const mins = parts[0] || '0';
+            let secs = parts[1] || '00';
+            // Automatically pad single digits (e.g. 4.3 -> 4 Min 30 Sec)
+            if (secs.length === 1) secs += '0';
+            displayText = `${mins} Min ${secs} Sec`;
+          }
         }
         
-        cell.innerHTML = generateSVG(displayText, color, fillPercent, data.type === 'text' || data.type === 'currency');
+        cell.innerHTML = generateSVG(displayText, color, fillPercent, isTextOnly, data.type);
 
         container.appendChild(cell);
       });
@@ -977,12 +992,23 @@
 
         if (data.text !== "") {
           let displayText = data.text;
+          let isTextOnly = data.type === 'text' || data.type === 'currency' || data.type === 'time';
+          
           if (data.type === 'percent') displayText += '%';
           if (data.type === 'currency') displayText = '$' + displayText;
           
+          // Format Wait Time Goals to "X Min Y Sec"
+          if (data.type === 'time') {
+            const parts = displayText.split('.');
+            const mins = parts[0] || '0';
+            let secs = parts[1] || '00';
+            if (secs.length === 1) secs += '0';
+            displayText = `${mins} Min ${secs} Sec`;
+          }
+          
           cell.innerHTML = `
             <div class="goal-svg-container">
-              ${generateSVG(displayText, "#1ae81a", 100, data.type === 'text' || data.type === 'currency')}
+              ${generateSVG(displayText, "#1ae81a", 100, isTextOnly, data.type)}
             </div>
           `;
         }
