@@ -558,7 +558,7 @@
   <script>
     // --- APP VERSION ---
     // Change this string whenever you push an update to GitHub to force users' browsers to reload!
-    const APP_VERSION = "1.0.53";
+    const APP_VERSION = "1.0.54";
     
     // PWA Version Checker
     async function checkForUpdates() {
@@ -764,7 +764,14 @@
         deptContainer.appendChild(group);
       });
 
-      // Initialize Associate Controls
+      // Initialize Associate Controls with specific placeholders
+      const assocPlaceholders = {
+        pickers: { name: "Associate", value: "Total Picks" },
+        dispensers: { name: "Associate", value: "Total Dispenses" },
+        stagers: { name: "Associate", value: "Total Stages" },
+        preppers: { name: "Associate", value: "Total Preps" }
+      };
+
       ['pickers', 'dispensers', 'stagers', 'preppers'].forEach(group => {
         const container = document.getElementById(`assoc-${group}-controls`);
         
@@ -777,6 +784,8 @@
           container.style.gap = '15px';
         }
 
+        const placeholders = assocPlaceholders[group];
+
         associateData[group].forEach((item, index) => {
           // Label logic to mark spots 6-10 as Optional
           const isOptional = (group === 'pickers' || group === 'dispensers') && index >= 5;
@@ -787,8 +796,8 @@
           div.innerHTML = `
             <label>${labelText}</label>
             <div style="display: flex; flex-direction: column; gap: 6px;">
-              <input type="text" placeholder="Name" value="${item.name}" oninput="updateAssoc('${group}', ${index}, 'name', this.value)">
-              <input type="text" inputmode="decimal" placeholder="Score" value="${item.value}" oninput="updateAssoc('${group}', ${index}, 'value', this.value)">
+              <input type="text" placeholder="${placeholders.name}" value="${item.name}" oninput="updateAssoc('${group}', ${index}, 'name', this.value)">
+              <input type="text" inputmode="decimal" placeholder="${placeholders.value}" value="${item.value}" oninput="updateAssoc('${group}', ${index}, 'value', this.value)">
             </div>
           `;
           container.appendChild(div);
