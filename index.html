@@ -347,6 +347,7 @@
       font-family: 'Bogle', 'Helvetica Neue', Helvetica, Arial, sans-serif;
       font-weight: 900;
       z-index: 5;
+      white-space: nowrap;
     }
 
     /* Associate Performance Styles */
@@ -474,6 +475,10 @@
         <label for="weekInput" style="font-weight: bold; color: var(--walmart-navy); font-size: 16px;">Week Number:</label>
         <input type="text" id="weekInput" placeholder="e.g. 23" oninput="updateWeekNumber(this.value)" inputmode="decimal" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; font-weight: bold; font-size: 14px; width: 120px; box-sizing: border-box;">
       </div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <label for="fyDateInput" style="font-weight: bold; color: var(--walmart-navy); font-size: 16px;">Walmart FY Date:</label>
+        <input type="text" id="fyDateInput" placeholder="Auto-calculated" oninput="updateFyDate(this.value)" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; font-weight: bold; font-size: 14px; width: 180px; box-sizing: border-box;">
+      </div>
       <button onclick="exportGraphic()" onmouseover="this.style.backgroundColor='#e3a918'" onmouseout="this.style.backgroundColor='var(--walmart-yellow)'" style="width: 100%; background-color: var(--walmart-yellow); color: #000; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background-color 0.2s;">
         Export as JPG
       </button>
@@ -557,7 +562,7 @@
 
   <script>
     // --- APP VERSION ---
-    const APP_VERSION = "1.0.59";
+    const APP_VERSION = "1.0.60";
 
     // Force static images to bypass browser cache on load
     function bustStaticImageCache() {
@@ -845,13 +850,61 @@
       renderAssocGraphs();
     }
 
-    function updateWeekNumber(val) {
-      const num = val.replace(/[^0-9]/g, '');
-      const displayVal = num ? `Week ${num}` : '';
+    let currentWeekNum = "";
+    let currentFyDate = "";
+
+    // Calculates the Walmart Fiscal Week date range (Saturday to Friday)
+    function getWalmartFYWeek(weekNum) {
+      const num = parseInt(weekNum, 10);
+      if (isNaN(num) || num < 1 || num > 53) return "";
       
-      document.getElementById('fulfillmentWeek').innerText = displayVal;
-      document.getElementById('departmentWeek').innerText = displayVal;
-      document.getElementById('associateWeek').innerText = displayVal;
+      const now = new Date();
+      // Walmart Fiscal Year starts around Feb 1.
+      // If current month is January (0), we are in the FY that started last calendar year.
+      const currentFYStartYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+      const fyCode = 'FY' + String((currentFYStartYear + 1) % 100).padStart(2, '0');
+      
+      // Calculate Saturday of the week containing Feb 1 of currentFYStartYear:
+      const feb1 = new Date(currentFYStartYear, 1, 1);
+      const dayOfWeek = feb1.getDay(); // 0 is Sun, 6 is Sat
+      const daysToSubtract = (dayOfWeek + 1) % 7;
+      const fyStartDate = new Date(currentFYStartYear, 1, 1 - daysToSubtract);
+      
+      // Week N starts (N - 1) * 7 days after fyStartDate
+      const weekStart = new Date(fyStartDate.getFullYear(), fyStartDate.getMonth(), fyStartDate.getDate() + (num - 1) * 7);
+      const weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6);
+      
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const startStr = `${monthNames[weekStart.getMonth()]} ${weekStart.getDate()}`;
+      const endStr = `${monthNames[weekEnd.getMonth()]} ${weekEnd.getDate()}`;
+      
+      return `${fyCode} (${startStr} - ${endStr})`;
+    }
+
+    function renderWeekDisplay() {
+      const weekText = currentWeekNum ? `Week ${currentWeekNum}` : '';
+      let displayHtml = weekText;
+      if (weekText && currentFyDate) {
+        displayHtml += ` <span class="fy-date-sub" style="font-size: 0.48em; font-weight: 700; margin-left: 8px; vertical-align: baseline; opacity: 0.9;">${currentFyDate}</span>`;
+      }
+      document.getElementById('fulfillmentWeek').innerHTML = displayHtml;
+      document.getElementById('departmentWeek').innerHTML = displayHtml;
+      document.getElementById('associateWeek').innerHTML = displayHtml;
+    }
+
+    function updateWeekNumber(val) {
+      currentWeekNum = val.replace(/[^0-9]/g, '');
+      currentFyDate = currentWeekNum ? getWalmartFYWeek(currentWeekNum) : '';
+      
+      const fyInput = document.getElementById('fyDateInput');
+      if (fyInput) fyInput.value = currentFyDate;
+      
+      renderWeekDisplay();
+    }
+
+    function updateFyDate(val) {
+      currentFyDate = val;
+      renderWeekDisplay();
     }
 
     function parseValue(text) {
