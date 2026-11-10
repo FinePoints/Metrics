@@ -530,7 +530,7 @@
   <div class="responsive-viewer">
     <!-- Fulfillment Viewer -->
     <div class="container" id="fulfillmentContainer" style="width: 100%; aspect-ratio: 16/9; position: relative;">
-      <img id="fulfillment-bg" class="bg-image" src="Fulfillment_metrics_and_goals_dashboard_1eb79344_2K.jpg" onerror="this.onerror=null;this.src='https://placehold.co/1920x1080/f4f6f8/a0aab5?text=Please+Upload+Background+Image';" alt="background">
+      <img id="fulfillment-bg" class="bg-image" src="Fulfillment_metrics_and_goals_dashboard_1eb79344_2K.jpg?v=1.0.55" onerror="this.onerror=null;this.src='https://placehold.co/1920x1080/f4f6f8/a0aab5?text=Please+Upload+Background+Image';" alt="background">
       <div id="fulfillmentWeek" class="week-display"></div>
       <div id="leftGrid" class="dashboard-grid left-side"></div>
       <div id="rightGrid" class="dashboard-grid right-side"></div>
@@ -538,14 +538,14 @@
 
     <!-- Department Viewer -->
     <div class="container" id="departmentContainer" style="display: none; width: 100%; aspect-ratio: 16/9; position: relative;">
-      <img id="department-bg" class="bg-image" src="Rearranging_layout_elements_1b76f72c_2K (1).jpg" onerror="this.onerror=null;this.src='https://placehold.co/1920x1080/f4f6f8/a0aab5?text=Please+Upload+Background+Image';" alt="background">
+      <img id="department-bg" class="bg-image" src="Rearranging_layout_elements_1b76f72c_2K (1).jpg?v=1.0.55" onerror="this.onerror=null;this.src='https://placehold.co/1920x1080/f4f6f8/a0aab5?text=Please+Upload+Background+Image';" alt="background">
       <div id="departmentWeek" class="week-display"></div>
       <div id="deptGrid" class="dept-grid"></div>
     </div>
 
     <!-- Associate Viewer -->
     <div class="container" id="associateContainer" style="display: none; width: 100%; aspect-ratio: 16/9; position: relative;">
-      <img id="associate-bg" class="bg-image" src="associatedashb.jpg" onerror="this.onerror=null;this.src='https://placehold.co/1920x1080/f4f6f8/a0aab5?text=Please+Upload+Background+Image';" alt="background">
+      <img id="associate-bg" class="bg-image" src="associatedashb.jpg?v=1.0.55" onerror="this.onerror=null;this.src='https://placehold.co/1920x1080/f4f6f8/a0aab5?text=Please+Upload+Background+Image';" alt="background">
       <div id="associateWeek" class="week-display"></div>
       <div class="assoc-header">Top Performing Associates</div>
       <div id="assoc-pickers" class="assoc-box box-pickers"></div>
@@ -562,7 +562,7 @@
 
   <script>
     // --- APP VERSION ---
-    const APP_VERSION = "1.0.60";
+    const APP_VERSION = "1.0.61";
 
     // Force static images to bypass browser cache on load
     function bustStaticImageCache() {
@@ -1095,7 +1095,6 @@
           } else {
             document.getElementById('associate-bg').src = e.target.result;
           }
-          // Reset file input so the same file can be selected again if needed
           event.target.value = '';
         };
         reader.readAsDataURL(file);
@@ -1172,9 +1171,29 @@
       const containerId = view === 'fulfillment' ? 'fulfillmentContainer' : 
                           view === 'department' ? 'departmentContainer' : 
                           'associateContainer';
-      const exportName = view === 'fulfillment' ? 'Walmart_Fulfillment_Metrics.jpg' : 
-                         view === 'department' ? 'Walmart_Department_Metrics.jpg' : 
-                         'Walmart_Associate_Performance.jpg';
+      
+      // Build dynamic filename: Walmart_[View]_WK[Num]_[FY]_[Dates].jpg
+      let dateSuffix = '';
+      if (currentWeekNum) {
+        dateSuffix += `_WK${currentWeekNum}`;
+      }
+      if (currentFyDate) {
+        const cleanFy = currentFyDate
+          .replace(/[()]/g, '')
+          .replace(/[\/\\:*?"<>|]/g, '')
+          .trim()
+          .replace(/\s*-\s*/g, '-')
+          .replace(/([A-Za-z]+)\s+(\d+)/g, '$1$2')
+          .replace(/\s+/g, '_');
+        if (cleanFy) {
+          dateSuffix += `_${cleanFy}`;
+        }
+      }
+
+      const baseName = view === 'fulfillment' ? 'Walmart_Fulfillment_Metrics' : 
+                       view === 'department' ? 'Walmart_Department_Metrics' : 
+                       'Walmart_Associate_Performance';
+      const exportName = `${baseName}${dateSuffix}.jpg`;
 
       const container = document.getElementById(containerId);
 
