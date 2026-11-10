@@ -454,7 +454,7 @@
   </div>
 
   <div class="toolbar" id="toolbar">
-    <img src="555.jpg" class="toolbar-logo" alt="Slide Metrics">
+    <img src="555.jpg" class="toolbar-logo" alt="Slide Metrics" onerror="this.src='https://placehold.co/150x45/0071ce/ffffff?text=Slide+Metrics'">
   </div>
 
   <!-- Mobile-Friendly Controls Panel -->
@@ -557,8 +557,7 @@
 
   <script>
     // --- APP VERSION ---
-    // Change this string whenever you push an update to GitHub to force users' browsers to reload!
-    const APP_VERSION = "1.0.54";
+    const APP_VERSION = "1.0.55";
     
     // PWA Version Checker
     async function checkForUpdates() {
@@ -609,8 +608,8 @@
       { name: "Actual to Demand", text: "", type: "percent" },
       { name: "Digital Turnover", text: "", type: "percent" },
       { name: "Call-In Rate", text: "", type: "percent" },
-      { name: "", text: "", type: "placeholder" }, // Empty slot for 3x3 layout
-      { name: "", text: "", type: "placeholder" }, // Empty slot for 3x3 layout
+      { name: "", text: "", type: "placeholder" },
+      { name: "", text: "", type: "placeholder" },
       { name: "Full Time Associates", text: "", type: "number" },
       { name: "Part Time Associates", text: "", type: "number" },
       { name: "Total Headcount", text: "", type: "number" }
@@ -636,30 +635,21 @@
     let deferredPrompt;
 
     window.addEventListener('beforeinstallprompt', (e) => {
-      // Prevent the default browser mini-infobar
       e.preventDefault();
-      // Stash the event so it can be triggered later.
       deferredPrompt = e;
-      // Show our custom Install banner
       document.getElementById('installBanner').style.display = 'flex';
     });
 
     async function installPWA() {
       if (deferredPrompt) {
-        // Show the native install prompt
         deferredPrompt.prompt();
-        // Wait for the user to respond to the prompt
         const { outcome } = await deferredPrompt.userChoice;
         console.log(`User installation prompt outcome: ${outcome}`);
-        // We can't use the prompt again, throw it away
         deferredPrompt = null;
-        // Hide the banner
         document.getElementById('installBanner').style.display = 'none';
       }
     }
 
-    // Register a dummy Service Worker to satisfy Chrome's PWA install requirements.
-    // NOTE: You must create an empty file named "sw.js" in your GitHub repository for this to work!
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').catch((err) => {
@@ -677,7 +667,6 @@
       renderDeptGraphs();
       renderAssocGraphs();
 
-      // Trigger initial text scaling calculation
       updateContainerFonts();
       window.addEventListener('resize', updateContainerFonts);
     }
@@ -685,7 +674,6 @@
     function updateContainerFonts() {
       const containers = document.querySelectorAll('.container');
       containers.forEach(container => {
-        // If visible, set the baseline font size so 1em = 1% of container width
         if (container.style.display !== 'none') {
           container.style.fontSize = (container.offsetWidth / 100) + 'px';
         }
@@ -700,7 +688,6 @@
         const isPercent = cellsData[index].type === 'percent';
         const isCurrency = cellsData[index].type === 'currency';
         
-        // Performance Input Group
         const perfGroup = document.createElement('div');
         perfGroup.className = 'control-group';
         
@@ -719,7 +706,6 @@
         `;
         perfContainer.appendChild(perfGroup);
 
-        // Goal Input Group
         if (index < 7) {
           const goalGroup = document.createElement('div');
           goalGroup.className = 'control-group';
@@ -741,16 +727,14 @@
         }
       });
 
-      // Initialize Department Controls
       const deptContainer = document.getElementById('deptControls');
       deptData.forEach((item, index) => {
-        if (item.type === 'placeholder') return; // Skip empty layout slots
+        if (item.type === 'placeholder') return;
 
         const isPercent = item.type === 'percent';
         const group = document.createElement('div');
         group.className = 'control-group';
         
-        // Total Headcount (index 8) is readonly
         const isReadonly = index === 8 ? 'readonly disabled style="background-color: #e9ecef; cursor: not-allowed;"' : '';
         
         const inputHtml = isPercent 
@@ -764,18 +748,16 @@
         deptContainer.appendChild(group);
       });
 
-      // Initialize Associate Controls with specific placeholders
       const assocPlaceholders = {
-        pickers: { name: "Associate", value: "Total Picks" },
-        dispensers: { name: "Associate", value: "Total Dispenses" },
-        stagers: { name: "Associate", value: "Total Stages" },
-        preppers: { name: "Associate", value: "Total Preps" }
+        pickers: { name: "Associates Name", value: "Total Picks" },
+        dispensers: { name: "Associates Name", value: "Total Dispenses" },
+        stagers: { name: "Associates Name", value: "Total Stages" },
+        preppers: { name: "Associates Name", value: "Total Preps" }
       };
 
       ['pickers', 'dispensers', 'stagers', 'preppers'].forEach(group => {
         const container = document.getElementById(`assoc-${group}-controls`);
         
-        // Setup 2-column top-down flow for the 10-item lists
         if (group === 'pickers' || group === 'dispensers') {
           container.style.display = 'grid';
           container.style.gridTemplateRows = 'repeat(5, auto)';
@@ -787,7 +769,6 @@
         const placeholders = assocPlaceholders[group];
 
         associateData[group].forEach((item, index) => {
-          // Label logic to mark spots 6-10 as Optional
           const isOptional = (group === 'pickers' || group === 'dispensers') && index >= 5;
           const labelText = isOptional ? `#${index + 1} (Optional)` : `#${index + 1}`;
 
@@ -827,7 +808,6 @@
     function updateDeptData(index, value) {
       deptData[index].text = value;
 
-      // Auto calculate Total Headcount (Index 8) from FT (Index 6) and PT (Index 7)
       if (index === 6 || index === 7) {
         const ft = parseInt(deptData[6].text) || 0;
         const pt = parseInt(deptData[7].text) || 0;
