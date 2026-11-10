@@ -557,7 +557,7 @@
 
   <script>
     // --- APP VERSION ---
-    const APP_VERSION = "1.0.55";
+    const APP_VERSION = "1.0.56";
     
     // PWA Version Checker
     async function checkForUpdates() {
@@ -602,7 +602,7 @@
       { text: "", type: "text" }
     ];
 
-    // Starting data state for Department Metrics (Includes placeholders to push bottom 3 down)
+    // Starting data state for Department Metrics
     let deptData = [
       { name: "Schedule to Demand", text: "", type: "percent" },
       { name: "Actual to Demand", text: "", type: "percent" },
@@ -1134,7 +1134,7 @@
         html2canvas(container, {
           scale: 2, 
           useCORS: true,
-          backgroundColor: '#ffffff', // Solid white background for JPG
+          backgroundColor: '#ffffff',
           windowWidth: 1376,
           windowHeight: 768
         }).then(canvas => {
@@ -1149,7 +1149,7 @@
 
           const link = document.createElement('a');
           link.download = exportName;
-          link.href = canvas.toDataURL('image/jpeg', 0.9); // Export as JPG with 90% quality compression
+          link.href = canvas.toDataURL('image/jpeg', 0.9);
           link.click();
         });
       }, 100);
