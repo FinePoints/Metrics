@@ -454,7 +454,7 @@
   </div>
 
   <div class="toolbar" id="toolbar">
-    <img src="555.jpg" class="toolbar-logo" alt="Slide Metrics" onerror="this.src='https://placehold.co/150x45/0071ce/ffffff?text=Slide+Metrics'">
+    <img id="toolbar-logo" src="555.jpg" class="toolbar-logo" alt="Slide Metrics" onerror="this.onerror=null;this.src='https://placehold.co/150x45/0071ce/ffffff?text=Slide+Metrics';">
   </div>
 
   <!-- Mobile-Friendly Controls Panel -->
@@ -525,7 +525,7 @@
   <div class="responsive-viewer">
     <!-- Fulfillment Viewer -->
     <div class="container" id="fulfillmentContainer" style="width: 100%; aspect-ratio: 16/9; position: relative;">
-      <img id="fulfillment-bg" class="bg-image" src="Fulfillment_metrics_and_goals_dashboard_1eb79344_2K.jpg?v=1.0.58" onerror="this.onerror=null;this.src='https://placehold.co/1920x1080/f4f6f8/a0aab5?text=Please+Upload+Background+Image';" alt="background">
+      <img id="fulfillment-bg" class="bg-image" src="Fulfillment_metrics_and_goals_dashboard_1eb79344_2K.jpg" onerror="this.onerror=null;this.src='https://placehold.co/1920x1080/f4f6f8/a0aab5?text=Please+Upload+Background+Image';" alt="background">
       <div id="fulfillmentWeek" class="week-display"></div>
       <div id="leftGrid" class="dashboard-grid left-side"></div>
       <div id="rightGrid" class="dashboard-grid right-side"></div>
@@ -533,14 +533,14 @@
 
     <!-- Department Viewer -->
     <div class="container" id="departmentContainer" style="display: none; width: 100%; aspect-ratio: 16/9; position: relative;">
-      <img id="department-bg" class="bg-image" src="Rearranging_layout_elements_1b76f72c_2K (1).jpg?v=1.0.58" onerror="this.onerror=null;this.src='https://placehold.co/1920x1080/f4f6f8/a0aab5?text=Please+Upload+Background+Image';" alt="background">
+      <img id="department-bg" class="bg-image" src="Rearranging_layout_elements_1b76f72c_2K (1).jpg" onerror="this.onerror=null;this.src='https://placehold.co/1920x1080/f4f6f8/a0aab5?text=Please+Upload+Background+Image';" alt="background">
       <div id="departmentWeek" class="week-display"></div>
       <div id="deptGrid" class="dept-grid"></div>
     </div>
 
     <!-- Associate Viewer -->
     <div class="container" id="associateContainer" style="display: none; width: 100%; aspect-ratio: 16/9; position: relative;">
-      <img id="associate-bg" class="bg-image" src="associatedashb.jpg?v=1.0.58" onerror="this.onerror=null;this.src='https://placehold.co/1920x1080/f4f6f8/a0aab5?text=Please+Upload+Background+Image';" alt="background">
+      <img id="associate-bg" class="bg-image" src="associatedashb.jpg" onerror="this.onerror=null;this.src='https://placehold.co/1920x1080/f4f6f8/a0aab5?text=Please+Upload+Background+Image';" alt="background">
       <div id="associateWeek" class="week-display"></div>
       <div class="assoc-header">Top Performing Associates</div>
       <div id="assoc-pickers" class="assoc-box box-pickers"></div>
@@ -557,7 +557,23 @@
 
   <script>
     // --- APP VERSION ---
-    const APP_VERSION = "1.0.58";
+    const APP_VERSION = "1.0.59";
+
+    // Force static images to bypass browser cache on load
+    function bustStaticImageCache() {
+      const timestamp = new Date().getTime();
+      ['toolbar-logo', 'fulfillment-bg', 'department-bg', 'associate-bg'].forEach(id => {
+        const img = document.getElementById(id);
+        if (img) {
+          const rawSrc = img.getAttribute('src');
+          if (rawSrc && !rawSrc.startsWith('http') && !rawSrc.startsWith('data:')) {
+            const cleanSrc = rawSrc.split('?')[0];
+            img.src = `${cleanSrc}?v=${APP_VERSION}&t=${timestamp}`;
+          }
+        }
+      });
+    }
+    bustStaticImageCache();
     
     // PWA Version Checker
     async function checkForUpdates() {
@@ -893,24 +909,13 @@
         
         const color = getColor(parsedVal, parsedTarget, data.type);
         
-        let fillPercent = 0;
-        if (data.text !== "") {
-          if (data.type === 'time') {
-            const diff = parsedVal - parsedTarget;
-            if (diff <= 0) fillPercent = 100;
-            else if (diff < 5) fillPercent = 100 - (diff * 20);
-            else fillPercent = 100;
-          } else {
-            fillPercent = Math.min(Math.max(parsedVal, 0), 100);
-          }
-        }
+        let isTextOnly = data.type === 'text' || data.type === 'currency' || data.type === 'time';
+        let fillPercent = (!isTextOnly && data.text !== "") ? Math.min(Math.max(parsedVal, 0), 100) : 0;
         
         const cell = document.createElement('div');
         cell.className = 'graph-cell';
 
         let displayText = "";
-        let isTextOnly = data.type === 'text' || data.type === 'currency' || data.type === 'time';
-        
         if (data.text !== "") {
           displayText = data.text;
           if (data.type === 'percent') displayText += '%';
@@ -1030,15 +1035,15 @@
         const reader = new FileReader();
         reader.onload = function(e) {
           const view = document.getElementById('viewSelect').value;
-          const cacheBustedSrc = e.target.result + '?nocache=' + new Date().getTime();
-          
           if (view === 'fulfillment') {
-            document.getElementById('fulfillment-bg').src = cacheBustedSrc;
+            document.getElementById('fulfillment-bg').src = e.target.result;
           } else if (view === 'department') {
-            document.getElementById('department-bg').src = cacheBustedSrc;
+            document.getElementById('department-bg').src = e.target.result;
           } else {
-            document.getElementById('associate-bg').src = cacheBustedSrc;
+            document.getElementById('associate-bg').src = e.target.result;
           }
+          // Reset file input so the same file can be selected again if needed
+          event.target.value = '';
         };
         reader.readAsDataURL(file);
       }
@@ -1066,11 +1071,15 @@
       setTimeout(updateContainerFonts, 0);
     }
 
+    let toastTimeout;
     function showToast(msg) {
       const toast = document.getElementById("toast");
       toast.innerText = msg;
       toast.className = "show";
-      setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.className = toast.className.replace("show", "");
+      }, 3000);
     }
 
     function exportGraphic() {
