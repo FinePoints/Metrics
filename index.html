@@ -351,6 +351,77 @@ details[open] summary::after { transform: rotate(180deg); }
 .box-stagers    { top: 30.5%; left: 43.1%; width: 18%; height: 28%; }
 .box-preppers   { top: 60.5%; left: 43.1%; width: 18%; height: 28%; }
 
+/* FY calendar picker */
+.week-picker { position: relative; display: flex; align-items: center; gap: 8px; }
+.cal-btn {
+  border: 1px solid #ccc;
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 16px;
+  cursor: pointer;
+}
+.cal-btn:hover, .cal-btn[aria-expanded="true"] { background: #e6f1fb; border-color: var(--walmart-blue); }
+.cal-popup {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(340px, 90vw);
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.25);
+  z-index: 50;
+  overflow: hidden;
+}
+.cal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--walmart-blue);
+  color: #fff;
+  padding: 10px 12px;
+  font-weight: bold;
+}
+.cal-head button {
+  background: rgba(255,255,255,.2);
+  color: #fff;
+  border: 0;
+  border-radius: 4px;
+  width: 32px;
+  height: 28px;
+  font-size: 16px;
+  cursor: pointer;
+}
+.cal-head button:hover { background: rgba(255,255,255,.35); }
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 10px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.cal-week {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fafafa;
+  color: var(--walmart-navy);
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.cal-week small { font-size: 10px; font-weight: normal; color: #555; white-space: nowrap; }
+.cal-week:hover { border-color: var(--walmart-blue); background: #e6f1fb; }
+.cal-week.today { border-color: var(--walmart-yellow); box-shadow: inset 0 0 0 2px var(--walmart-yellow); }
+.cal-week.selected { background: var(--walmart-blue); border-color: var(--walmart-blue); color: #fff; }
+.cal-week.selected small { color: #fff; }
+
 /* Toast */
 #toast {
   visibility: hidden;
@@ -398,7 +469,11 @@ details[open] summary::after { transform: rotate(180deg); }
       </div>
       <div class="panel-row">
         <label for="weekInput">Week Number:</label>
-        <input type="text" id="weekInput" placeholder="e.g. 23" inputmode="numeric" style="width:120px">
+        <div class="week-picker">
+          <button id="calBtn" type="button" class="cal-btn" aria-label="Open Walmart FY calendar" aria-expanded="false">📅</button>
+          <input type="text" id="weekInput" placeholder="e.g. 23" inputmode="numeric" style="width:120px">
+          <div id="calPopup" class="cal-popup" hidden></div>
+        </div>
       </div>
       <div class="panel-row">
         <label for="fyDateInput">Walmart FY Date:</label>
@@ -503,6 +578,7 @@ const VIEWS = {
 const state = {
   week: "",
   fyDate: "",
+  fyStartYear: null, // null = current fiscal year
   dirty: false,
   perf:  METRICS.map(() => ""),
   goals: METRICS.map(m => m.goal),
@@ -771,21 +847,119 @@ function renderAssoc() {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** Returns e.g. "FY27 (Feb 1 - Feb 7)". Weeks run Saturday–Friday; week 1 is the week containing Feb 1. */
-function getWalmartFYWeek(weekNum, today = new Date()) {
-  const num = parseInt(weekNum, 10);
-  if (!(num >= 1 && num <= 53)) return "";
-
-  const startYear = today.getMonth() === 0 ? today.getFullYear() - 1 : today.getFullYear();
-  const fyCode = `FY${String((startYear + 1) % 100).padStart(2, "0")}`;
-
+/** Saturday on or before Feb 1 of the given calendar year = first day of that fiscal year's week 1. */
+function fyStartDate(startYear) {
   const feb1 = new Date(startYear, 1, 1);
-  const fyStart = new Date(startYear, 1, 1 - ((feb1.getDay() + 1) % 7)); // back up to Saturday
-  const start = new Date(fyStart.getFullYear(), fyStart.getMonth(), fyStart.getDate() + (num - 1) * 7);
-  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
-  const fmt = d => `${MONTHS[d.getMonth()]} ${d.getDate()}`;
-  return `${fyCode} (${fmt(start)} - ${fmt(end)})`;
+  return new Date(startYear, 1, 1 - ((feb1.getDay() + 1) % 7));
 }
+
+/** Calendar year in which the fiscal year containing `today` started. */
+function currentFYStartYear(today = new Date()) {
+  const y = today.getFullYear();
+  if (today.getMonth() === 0) return y - 1;
+  // Early Feb days can still belong to the prior FY if week 1 hasn't begun yet.
+  return today < fyStartDate(y) ? y - 1 : y;
+}
+
+const fyCodeFor = startYear => `FY${String((startYear + 1) % 100).padStart(2, "0")}`;
+
+/** 52 or 53, depending on when the next fiscal year starts. */
+function weeksInFY(startYear) {
+  return Math.round((fyStartDate(startYear + 1) - fyStartDate(startYear)) / 604800000);
+}
+
+function fyWeekRange(startYear, num) {
+  const s = fyStartDate(startYear);
+  const start = new Date(s.getFullYear(), s.getMonth(), s.getDate() + (num - 1) * 7);
+  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+  return { start, end };
+}
+
+const fmtMD = d => `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+
+/** Returns e.g. "FY27 (Feb 1 - Feb 7)". Weeks run Saturday–Friday; week 1 is the week containing Feb 1. */
+function getWalmartFYWeek(weekNum, startYear = currentFYStartYear()) {
+  const num = parseInt(weekNum, 10);
+  if (!(num >= 1 && num <= weeksInFY(startYear))) return "";
+  const { start, end } = fyWeekRange(startYear, num);
+  return `${fyCodeFor(startYear)} (${fmtMD(start)} - ${fmtMD(end)})`;
+}
+
+/** Sets week number + FY date together (used by the calendar picker). */
+function setWeek(num, startYear) {
+  state.week = String(num);
+  state.fyDate = getWalmartFYWeek(num, startYear);
+  state.fyStartYear = startYear;
+  state.dirty = true;
+  $("weekInput").value = state.week;
+  $("fyDateInput").value = state.fyDate;
+  renderWeekDisplay();
+}
+
+/* ---------------- FY calendar picker ---------------- */
+
+const calendar = { year: null };
+
+function renderCalendar() {
+  const popup = $("calPopup");
+  const year = calendar.year;
+  const total = weeksInFY(year);
+  const now = new Date();
+  const selectedYear = state.fyStartYear ?? currentFYStartYear();
+
+  popup.innerHTML = `
+    <div class="cal-head">
+      <button type="button" data-nav="-1" aria-label="Previous fiscal year">‹</button>
+      <span>${fyCodeFor(year)} · ${total} weeks</span>
+      <button type="button" data-nav="1" aria-label="Next fiscal year">›</button>
+    </div>
+    <div class="cal-grid">
+      ${Array.from({ length: total }, (_, i) => {
+        const n = i + 1;
+        const { start, end } = fyWeekRange(year, n);
+        const endOfDay = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
+        const classes = ["cal-week"];
+        if (now >= start && now < endOfDay) classes.push("today");
+        if (String(n) === state.week && year === selectedYear) classes.push("selected");
+        return `<button type="button" class="${classes.join(" ")}" data-week="${n}">Wk ${n}<small>${fmtMD(start)} - ${fmtMD(end)}</small></button>`;
+      }).join("")}
+    </div>`;
+
+  const sel = popup.querySelector(".selected") || popup.querySelector(".today");
+  if (sel) sel.scrollIntoView({ block: "center" });
+}
+
+function toggleCalendar(open) {
+  const popup = $("calPopup");
+  const show = open ?? popup.hidden;
+  if (show) {
+    calendar.year = state.fyStartYear ?? currentFYStartYear();
+    renderCalendar();
+  }
+  popup.hidden = !show;
+  $("calBtn").setAttribute("aria-expanded", String(show));
+}
+
+function initCalendar() {
+  $("calBtn").addEventListener("click", e => { e.stopPropagation(); toggleCalendar(); });
+  $("calPopup").addEventListener("click", e => {
+    e.stopPropagation();
+    const nav = e.target.closest("[data-nav]");
+    if (nav) {
+      calendar.year += Number(nav.dataset.nav);
+      renderCalendar();
+      return;
+    }
+    const wk = e.target.closest("[data-week]");
+    if (wk) {
+      setWeek(Number(wk.dataset.week), calendar.year);
+      toggleCalendar(false);
+    }
+  });
+  document.addEventListener("click", () => toggleCalendar(false));
+  document.addEventListener("keydown", e => { if (e.key === "Escape") toggleCalendar(false); });
+}
+
 
 function renderWeekDisplay() {
   const html = state.week
@@ -956,6 +1130,7 @@ function init() {
 
   $("weekInput").addEventListener("input", e => {
     state.week = e.target.value.replace(/[^0-9]/g, "");
+    state.fyStartYear = null;
     state.fyDate = state.week ? getWalmartFYWeek(state.week) : "";
     $("fyDateInput").value = state.fyDate;
     state.dirty = true;
@@ -967,6 +1142,7 @@ function init() {
   });
 
   initPWA();
+  initCalendar();
   checkForUpdates();
   setInterval(checkForUpdates, 60 * 60 * 1000);
   window.addEventListener("resize", updateContainerFonts);
