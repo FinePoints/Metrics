@@ -529,7 +529,7 @@ details[open] summary::after { transform: rotate(180deg); }
   <script>
 "use strict";
 
-const APP_VERSION = "1.0.62";
+const APP_VERSION = "1.0.64";
 const PLACEHOLDER_IMG = "https://placehold.co/1920x1080/f4f6f8/a0aab5?text=Please+Upload+Background+Image";
 const EXPORT_SIZE = { width: 1376, height: 768 };
 const ARC_LENGTH = Math.PI * 80;
@@ -907,6 +907,19 @@ function renderCalendar() {
   const now = new Date();
   const selectedYear = state.fyStartYear ?? currentFYStartYear();
 
+  // In the current fiscal year, list: last week, this week, upcoming weeks, then older past weeks (newest first).
+  let order = Array.from({ length: total }, (_, i) => i + 1);
+  const curWeek = order.find(n => {
+    const { start, end } = fyWeekRange(year, n);
+    return now >= start && now < new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
+  });
+  if (curWeek) {
+    const head = [curWeek - 1, curWeek].filter(n => n >= 1);
+    const upcoming = order.filter(n => n > curWeek);
+    const older = order.filter(n => n < curWeek - 1).reverse();
+    order = [...head, ...upcoming, ...older];
+  }
+
   popup.innerHTML = `
     <div class="cal-head">
       <button type="button" data-nav="-1" aria-label="Previous fiscal year">‹</button>
@@ -914,19 +927,14 @@ function renderCalendar() {
       <button type="button" data-nav="1" aria-label="Next fiscal year">›</button>
     </div>
     <div class="cal-grid">
-      ${Array.from({ length: total }, (_, i) => {
-        const n = i + 1;
+      ${order.map(n => {
         const { start, end } = fyWeekRange(year, n);
-        const endOfDay = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
         const classes = ["cal-week"];
-        if (now >= start && now < endOfDay) classes.push("today");
+        if (n === curWeek) classes.push("today");
         if (String(n) === state.week && year === selectedYear) classes.push("selected");
         return `<button type="button" class="${classes.join(" ")}" data-week="${n}">Wk ${n}<small>${fmtMD(start)} - ${fmtMD(end)}</small></button>`;
       }).join("")}
     </div>`;
-
-  const sel = popup.querySelector(".selected") || popup.querySelector(".today");
-  if (sel) sel.scrollIntoView({ block: "center" });
 }
 
 function toggleCalendar(open) {
