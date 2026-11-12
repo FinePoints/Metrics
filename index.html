@@ -535,6 +535,14 @@ details[open] summary::after { transform: rotate(180deg); }
           <option value="associate">Associate Performance</option>
         </select>
       </div>
+      <div class="panel-row" id="titleBgRow" hidden>
+        <label for="title-bg-select">Background:</label>
+        <select id="title-bg-select"></select>
+      </div>
+      <div class="panel-row" id="titleStoreRow" hidden>
+        <label for="title-store-input">Store Number:</label>
+        <input type="text" id="title-store-input" inputmode="numeric" style="width:120px">
+      </div>
       <div class="panel-row">
         <label for="weekInput">Week Number:</label>
         <div class="week-picker">
@@ -555,7 +563,6 @@ details[open] summary::after { transform: rotate(180deg); }
       <details><summary>Target Goals</summary><div class="controls-grid" id="goalControls"></div></details>
     </div>
     <div id="controls-title" data-view-controls hidden>
-      <details open><summary>Slide Details</summary><div class="controls-grid" id="titleControls"></div></details>
       <details open><summary>Fact</summary><div class="controls-grid fact-grid" id="factControls"></div></details>
     </div>
     <div id="controls-department" data-view-controls hidden>
@@ -612,7 +619,7 @@ details[open] summary::after { transform: rotate(180deg); }
   <script>
 "use strict";
 
-const APP_VERSION = "1.0.72";
+const APP_VERSION = "1.0.73";
 const PLACEHOLDER_IMG = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080"><rect width="100%" height="100%" fill="#f4f6f8"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" font-weight="bold" fill="#a0aab5">Please Upload Background Image</text></svg>'
 );
@@ -907,13 +914,7 @@ function initControls() {
 function initTitleControls() {
   if (!state.title.fact) state.title.fact = nextFact();
 
-  const bgGroup = document.createElement("div");
-  bgGroup.className = "control-group";
-  const bgLab = document.createElement("label");
-  bgLab.htmlFor = "title-bg-select";
-  bgLab.textContent = "Background";
-  const bgSel = document.createElement("select");
-  bgSel.id = "title-bg-select";
+  const bgSel = $("title-bg-select");
   TITLE_BGS.forEach(({ value, label }) => {
     const opt = document.createElement("option");
     opt.value = value;
@@ -927,16 +928,14 @@ function initTitleControls() {
     VIEWS.title.img = state.title.bg;
     loadImage($("title-bg"), `${state.title.bg}?v=${APP_VERSION}&t=${Date.now()}`, PLACEHOLDER_IMG);
   });
-  bgGroup.append(bgLab, bgSel);
 
-  $("titleControls").append(
-    createField({ label: "FY Date", id: "title-date-input", value: state.title.date,
-      onInput: v => { state.title.date = v; renderTitle(); } }),
-    createField({ label: "Store Number", id: "title-store-input", value: state.title.store,
-      onInput: v => { state.title.store = v; renderTitle(); } }),
-    bgGroup
-  );
-  $("title-store-input").inputMode = "numeric";
+  const storeInput = $("title-store-input");
+  storeInput.value = state.title.store;
+  storeInput.addEventListener("input", () => {
+    state.dirty = true;
+    state.title.store = storeInput.value;
+    renderTitle();
+  });
 
   const box = $("factControls");
   box.append(createField({ label: "Fact Title", id: "fact-title-input", value: state.title.factTitle,
@@ -1146,13 +1145,19 @@ function getWalmartFYWeek(weekNum, startYear = currentFYStartYear()) {
 function syncTitleDate() {
   const num = parseInt(state.week, 10);
   const yr = state.fyStartYear ?? currentFYStartYear();
-  if (!(num >= 1 && num <= weeksInFY(yr))) return;
-  const { start, end } = fyWeekRange(yr, num);
-  const f = d => `${d.getMonth() + 1}-${d.getDate()}`;
-  state.title.date = `${f(start)} – ${f(end)}`;
-  const el = $("title-date-input");
-  if (el) el.value = state.title.date;
+  if (!(num >= 1 && num <= weeksInFY(yr))) {
+    state.title.date = "";
+  } else {
+    const { start, end } = fyWeekRange(yr, num);
+    const f = d => `${d.getMonth() + 1}-${d.getDate()}`;
+    state.title.date = `${f(start)} – ${f(end)}`;
+  }
+  syncFyDateInput();
   renderTitle();
+}
+
+function syncFyDateInput() {
+  $("fyDateInput").value = currentView() === "title" ? state.title.date : state.fyDate;
 }
 
 /** The most recently completed fiscal week (the week before the current one), rolling back a fiscal year if needed. */
@@ -1175,7 +1180,6 @@ function setWeek(num, startYear) {
   state.fyStartYear = startYear;
   state.dirty = true;
   $("weekInput").value = state.week;
-  $("fyDateInput").value = state.fyDate;
   renderWeekDisplay();
   syncTitleDate();
 }
@@ -1272,10 +1276,14 @@ function updateContainerFonts() {
 
 function toggleView() {
   const view = currentView();
+  const isTitle = view === "title";
   Object.entries(VIEWS).forEach(([key, v]) => {
     $(v.container).hidden = key !== view;
     $(v.controls).hidden = key !== view;
   });
+  $("titleBgRow").hidden = !isTitle;
+  $("titleStoreRow").hidden = !isTitle;
+  syncFyDateInput();
   updateContainerFonts();
 }
 
@@ -1287,7 +1295,7 @@ function validateExport(view) {
 
   if (view === "title") {
     const t = state.title;
-    if (!t.date.trim() || !t.store.trim() || !t.fact.trim()) return "Please fill in the FY Date, Store Number and Fact.";
+    if (!t.date.trim() || !t.store.trim() || !t.fact.trim()) return "Please fill in the Walmart FY Date, Store Number and Fact.";
   } else if (view === "fulfillment") {
     const goalsNeeded = METRICS.map((m, i) => (m.noGoalInput ? "x" : state.goals[i]));
     if ([...state.perf, ...goalsNeeded].some(v => v.trim() === "")) return "Please fill in all Fulfillment Metrics & Goals.";
@@ -1446,14 +1454,19 @@ function init() {
     state.week = e.target.value.replace(/[^0-9]/g, "");
     state.fyStartYear = null;
     state.fyDate = state.week ? getWalmartFYWeek(state.week) : "";
-    $("fyDateInput").value = state.fyDate;
     state.dirty = true;
     renderWeekDisplay();
     syncTitleDate();
   });
   $("fyDateInput").addEventListener("input", e => {
-    state.fyDate = e.target.value;
-    renderWeekDisplay();
+    state.dirty = true;
+    if (currentView() === "title") {
+      state.title.date = e.target.value;
+      renderTitle();
+    } else {
+      state.fyDate = e.target.value;
+      renderWeekDisplay();
+    }
   });
 
   initPWA();
