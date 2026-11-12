@@ -619,7 +619,7 @@ details[open] summary::after { transform: rotate(180deg); }
   <script>
 "use strict";
 
-const APP_VERSION = "1.0.73";
+const APP_VERSION = "1.0.74";
 const PLACEHOLDER_IMG = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080"><rect width="100%" height="100%" fill="#f4f6f8"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" font-weight="bold" fill="#a0aab5">Please Upload Background Image</text></svg>'
 );
@@ -628,6 +628,15 @@ const LOGO_PLACEHOLDER_IMG = "data:image/svg+xml;charset=utf-8," + encodeURIComp
 );
 const EXPORT_SIZE = { width: 1376, height: 768 };
 const ARC_LENGTH = Math.PI * 80;
+
+/* ---------------- Early PWA Prompt Capture ---------------- */
+let deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const banner = document.getElementById("installBanner");
+  if (banner) banner.hidden = false;
+});
 
 /* ---------------- Config (single source of truth) ---------------- */
 
@@ -656,10 +665,10 @@ const DEPT_METRICS = [
 ];
 
 const ASSOC_GROUPS = [
-  { key: "pickers",    title: "Top Pickers",    valueLabel: "Total Picks",    count: 10, required: 5 },
+  { key: "pickers",    title: "Top Pickers",    valueLabel: "Total Picks",     count: 10, required: 5 },
   { key: "dispensers", title: "Top Dispensers", valueLabel: "Total Dispenses", count: 10, required: 5 },
-  { key: "stagers",    title: "Top Stagers",    valueLabel: "Total Stages",   count: 2,  required: 2 },
-  { key: "preppers",   title: "Top Preppers",   valueLabel: "Total Preps",    count: 2,  required: 2 }
+  { key: "stagers",    title: "Top Stagers",    valueLabel: "Total Stages",    count: 2,  required: 2 },
+  { key: "preppers",   title: "Top Preppers",   valueLabel: "Total Preps",     count: 2,  required: 2 }
 ];
 
 const TITLE_BGS = Array.from({ length: 7 }, (_, i) => ({
@@ -668,10 +677,10 @@ const TITLE_BGS = Array.from({ length: 7 }, (_, i) => ({
 }));
 
 const VIEWS = {
-  title:       { container: "titleContainer",       controls: "controls-title",       file: "Walmart_Title_Slide",         bg: "title-bg",       img: TITLE_BGS[0].value },
-  fulfillment: { container: "fulfillmentContainer", controls: "controls-fulfillment", file: "Walmart_Fulfillment_Metrics", bg: "fulfillment-bg", img: "Fulfillment_metrics_and_goals_dashboard_1eb79344_2K.jpg" },
-  department:  { container: "departmentContainer",  controls: "controls-department",  file: "Walmart_Department_Metrics",  bg: "department-bg",  img: "Rearranging_layout_elements_1b76f72c_2K (1).jpg" },
-  associate:   { container: "associateContainer",   controls: "controls-associate",   file: "Walmart_Associate_Performance", bg: "associate-bg", img: "associatedashb.jpg" }
+  title:       { container: "titleContainer",       controls: "controls-title",       file: "Walmart_Title_Slide",           bg: "title-bg",       img: TITLE_BGS[0].value },
+  fulfillment: { container: "fulfillmentContainer", controls: "controls-fulfillment", file: "Walmart_Fulfillment_Metrics",   bg: "fulfillment-bg", img: "Fulfillment_metrics_and_goals_dashboard_1eb79344_2K.jpg" },
+  department:  { container: "departmentContainer",  controls: "controls-department",  file: "Walmart_Department_Metrics",    bg: "department-bg",  img: "Rearranging_layout_elements_1b76f72c_2K (1).jpg" },
+  associate:   { container: "associateContainer",   controls: "controls-associate",   file: "Walmart_Associate_Performance", bg: "associate-bg",   img: "associatedashb.jpg" }
 };
 
 /** Walmart facts live in their own database file, facts.json ({ "facts": ["...", ...] }).
@@ -1310,16 +1319,26 @@ function validateExport(view) {
   return "";
 }
 
+function sanitizeFilenamePart(str) {
+  return str
+    .replace(/[()]/g, "")
+    .replace(/[\/\\:*?"<>|]/g, "")
+    .trim()
+    .replace(/\s*[–-]\s*/g, "-")
+    .replace(/([A-Za-z]+)\s+(\d+)/g, "$1$2")
+    .replace(/\s+/g, "_");
+}
+
 function buildExportName(view) {
-  let suffix = state.week ? `_WK${state.week}` : "";
-  if (state.fyDate) {
-    const clean = state.fyDate
-      .replace(/[()]/g, "")
-      .replace(/[\/\\:*?"<>|]/g, "")
-      .trim()
-      .replace(/\s*-\s*/g, "-")
-      .replace(/([A-Za-z]+)\s+(\d+)/g, "$1$2")
-      .replace(/\s+/g, "_");
+  let suffix = "";
+  if (view === "title") {
+    const storeClean = sanitizeFilenamePart(state.title.store);
+    const dateClean = sanitizeFilenamePart(state.title.date);
+    if (storeClean) suffix += `_Store${storeClean}`;
+    if (dateClean) suffix += `_${dateClean}`;
+  } else {
+    if (state.week) suffix += `_WK${state.week}`;
+    const clean = sanitizeFilenamePart(state.fyDate);
     if (clean) suffix += `_${clean}`;
   }
   return `${VIEWS[view].file}${suffix}.jpg`;
@@ -1399,14 +1418,9 @@ async function checkForUpdates() {
 }
 
 function initPWA() {
-  let deferredPrompt;
   const banner = $("installBanner");
+  if (deferredPrompt) banner.hidden = false;
 
-  window.addEventListener("beforeinstallprompt", e => {
-    e.preventDefault();
-    deferredPrompt = e;
-    banner.hidden = false;
-  });
   banner.addEventListener("click", async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
@@ -1452,6 +1466,7 @@ function init() {
 
   $("weekInput").addEventListener("input", e => {
     state.week = e.target.value.replace(/[^0-9]/g, "");
+    e.target.value = state.week;
     state.fyStartYear = null;
     state.fyDate = state.week ? getWalmartFYWeek(state.week) : "";
     state.dirty = true;
