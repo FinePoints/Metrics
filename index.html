@@ -489,6 +489,70 @@ details[open] summary::after { transform: rotate(180deg); }
 .cal-week.selected { background: var(--walmart-blue); border-color: var(--walmart-blue); color: #fff; }
 .cal-week.selected small { color: #fff; }
 
+/* Customer Shoutouts Slide */
+.shoutout-text {
+  position: absolute;
+  z-index: 2;
+  box-sizing: border-box;
+  padding: 0.25em 0.45em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--walmart-navy);
+  font-family: 'Bogle', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 800;
+  line-height: 1.18;
+  overflow: hidden;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+.shoutout-badge {
+  position: absolute;
+  z-index: 3;
+  box-sizing: border-box;
+  padding: 0 0.2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #ffffff;
+  font-family: 'Bogle', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 800;
+  font-size: 2.05em;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.shoutout-card {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.shoutout-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.shoutout-card-head label {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--walmart-navy);
+}
+.shoutout-card-head input {
+  width: 110px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: bold;
+  text-align: center;
+}
+
 /* Toast */
 #toast {
   visibility: hidden;
@@ -529,15 +593,20 @@ details[open] summary::after { transform: rotate(180deg); }
       <div class="panel-row">
         <label for="viewSelect">Slide Selection:</label>
         <select id="viewSelect">
-          <option value="title">Title Slide</option>
           <option value="fulfillment" selected>Fulfillment Metrics</option>
           <option value="department">Department Metrics</option>
           <option value="associate">Associate Performance</option>
+          <option value="shoutouts">Customer Shoutouts</option>
+          <option value="title">Title Slide</option>
         </select>
       </div>
       <div class="panel-row" id="titleBgRow" hidden>
         <label for="title-bg-select">Background:</label>
         <select id="title-bg-select"></select>
+      </div>
+      <div class="panel-row" id="shoutoutsBgRow" hidden>
+        <label for="shoutouts-bg-select">Background:</label>
+        <select id="shoutouts-bg-select"></select>
       </div>
       <div class="panel-row" id="titleStoreRow" hidden>
         <label for="title-store-input">Store Number:</label>
@@ -573,6 +642,9 @@ details[open] summary::after { transform: rotate(180deg); }
       <details><summary>Top Dispensers</summary><div class="controls-grid assoc-grid" id="assoc-dispensers-controls"></div></details>
       <details><summary>Top Stagers</summary><div class="controls-grid" id="assoc-stagers-controls"></div></details>
       <details><summary>Top Preppers</summary><div class="controls-grid" id="assoc-preppers-controls"></div></details>
+    </div>
+    <div id="controls-shoutouts" data-view-controls hidden>
+      <details open><summary>Customer Shoutouts (7 Speech Bubbles)</summary><div class="controls-grid fact-grid" id="shoutoutsControls"></div></details>
     </div>
   </div>
 
@@ -610,6 +682,11 @@ details[open] summary::after { transform: rotate(180deg); }
       <div id="assoc-stagers" class="assoc-box box-stagers"></div>
       <div id="assoc-preppers" class="assoc-box box-preppers"></div>
     </div>
+
+    <div class="container" id="shoutoutsContainer" data-view-container hidden>
+      <img id="shoutouts-bg" class="bg-image" alt="">
+      <div id="shoutoutsOverlay"></div>
+    </div>
   </div>
 
   <div class="bottom-upload-container">
@@ -619,7 +696,7 @@ details[open] summary::after { transform: rotate(180deg); }
   <script>
 "use strict";
 
-const APP_VERSION = "1.0.74";
+const APP_VERSION = "1.0.85";
 const PLACEHOLDER_IMG = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080"><rect width="100%" height="100%" fill="#f4f6f8"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" font-weight="bold" fill="#a0aab5">Please Upload Background Image</text></svg>'
 );
@@ -676,11 +753,29 @@ const TITLE_BGS = Array.from({ length: 7 }, (_, i) => ({
   label: `Background ${i + 1} (title${i}.jpg)`
 }));
 
+const SHOUTOUT_BGS = Array.from({ length: 11 }, (_, i) => ({
+  value: `images/so/so${i + 1}.jpg`,
+  label: `Background ${i + 1} (so${i + 1}.jpg)`
+}));
+
+const SHOUTOUT_SLOTS = [
+  // Top row (Sat - Tue)
+  { day: "Saturday",  text: { left: 6.9,  top: 27.6, width: 18.6, height: 14.3 }, badge: { left: 19.6, top: 42.3, width: 6.3, height: 6.0 } },
+  { day: "Sunday",    text: { left: 29.4, top: 27.6, width: 19.3, height: 14.4 }, badge: { left: 43.1, top: 42.4, width: 6.3, height: 6.1 } },
+  { day: "Monday",    text: { left: 52.3, top: 27.6, width: 19.2, height: 14.3 }, badge: { left: 65.8, top: 42.3, width: 6.3, height: 6.0 } },
+  { day: "Tuesday",   text: { left: 75.0, top: 27.6, width: 19.2, height: 14.4 }, badge: { left: 88.6, top: 42.4, width: 6.3, height: 6.1 } },
+  // Bottom row (Wed - Fri)
+  { day: "Wednesday", text: { left: 19.2, top: 58.6, width: 19.0, height: 14.3 }, badge: { left: 32.7, top: 73.2, width: 6.3, height: 6.0 } },
+  { day: "Thursday",  text: { left: 41.3, top: 58.6, width: 18.8, height: 14.3 }, badge: { left: 54.4, top: 73.2, width: 6.3, height: 6.1 } },
+  { day: "Friday",    text: { left: 63.0, top: 58.6, width: 18.6, height: 14.3 }, badge: { left: 76.0, top: 73.2, width: 6.3, height: 6.0 } }
+];
+
 const VIEWS = {
-  title:       { container: "titleContainer",       controls: "controls-title",       file: "Walmart_Title_Slide",           bg: "title-bg",       img: TITLE_BGS[0].value },
   fulfillment: { container: "fulfillmentContainer", controls: "controls-fulfillment", file: "Walmart_Fulfillment_Metrics",   bg: "fulfillment-bg", img: "Fulfillment_metrics_and_goals_dashboard_1eb79344_2K.jpg" },
   department:  { container: "departmentContainer",  controls: "controls-department",  file: "Walmart_Department_Metrics",    bg: "department-bg",  img: "Rearranging_layout_elements_1b76f72c_2K (1).jpg" },
-  associate:   { container: "associateContainer",   controls: "controls-associate",   file: "Walmart_Associate_Performance", bg: "associate-bg",   img: "associatedashb.jpg" }
+  associate:   { container: "associateContainer",   controls: "controls-associate",   file: "Walmart_Associate_Performance", bg: "associate-bg",   img: "associatedashb.jpg" },
+  shoutouts:   { container: "shoutoutsContainer",   controls: "controls-shoutouts",   file: "Walmart_Customer_Shoutouts",    bg: "shoutouts-bg",   img: "588.jpg" }, // img is overridden dynamically
+  title:       { container: "titleContainer",       controls: "controls-title",       file: "Walmart_Title_Slide",           bg: "title-bg",       img: TITLE_BGS[0].value }
 };
 
 /** Walmart facts live in their own database file, facts.json ({ "facts": ["...", ...] }).
@@ -728,15 +823,18 @@ const state = {
     fact: "",
     factAuto: true
   },
+  shoutoutsBg: SHOUTOUT_BGS[Math.floor(Math.random() * SHOUTOUT_BGS.length)].value,
   dirty: false,
   perf:  METRICS.map(() => ""),
   goals: METRICS.map(m => m.goal),
   dept:  DEPT_METRICS.map(() => ""),
   assoc: Object.fromEntries(ASSOC_GROUPS.map(g => [
     g.key, Array.from({ length: g.count }, () => ({ name: "", value: "" }))
-  ]))
+  ])),
+  shoutouts: SHOUTOUT_SLOTS.map(() => ({ text: "", date: "", dateAuto: true }))
 };
 VIEWS.title.img = state.title.bg;
+VIEWS.shoutouts.img = state.shoutoutsBg;
 
 /* ---------------- Helpers ---------------- */
 
@@ -813,7 +911,7 @@ function loadStaticImages() {
   const bust = src => `${src}?v=${APP_VERSION}&t=${t}`;
   loadImage($("toolbar-logo"), bust("555.jpg"), LOGO_PLACEHOLDER_IMG);
   Object.entries(VIEWS).forEach(([key, v]) => {
-    const imgPath = key === "title" ? state.title.bg : v.img;
+    const imgPath = key === "title" ? state.title.bg : (key === "shoutouts" ? state.shoutoutsBg : v.img);
     loadImage($(v.bg), bust(imgPath), PLACEHOLDER_IMG);
   });
 }
@@ -982,6 +1080,66 @@ function setFact(text) {
   renderTitle();
 }
 
+function initShoutoutsControls() {
+  const bgSel = $("shoutouts-bg-select");
+  SHOUTOUT_BGS.forEach(({ value, label }) => {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    opt.selected = value === state.shoutoutsBg;
+    bgSel.append(opt);
+  });
+  bgSel.addEventListener("change", () => {
+    state.dirty = true;
+    state.shoutoutsBg = bgSel.value;
+    VIEWS.shoutouts.img = state.shoutoutsBg;
+    loadImage($("shoutouts-bg"), `${state.shoutoutsBg}?v=${APP_VERSION}&t=${Date.now()}`, PLACEHOLDER_IMG);
+  });
+
+  const box = $("shoutoutsControls");
+
+  state.shoutouts.forEach((item, i) => {
+    const slot = SHOUTOUT_SLOTS[i];
+    const card = document.createElement("div");
+    card.className = "shoutout-card";
+
+    const head = document.createElement("div");
+    head.className = "shoutout-card-head";
+
+    const lab = document.createElement("label");
+    lab.htmlFor = `shoutout-text-${i}`;
+    lab.textContent = `Bubble ${i + 1} (${slot.day})`;
+
+    const dateInput = document.createElement("input");
+    dateInput.type = "text";
+    dateInput.id = `shoutout-date-${i}`;
+    dateInput.placeholder = "M/D";
+    dateInput.value = item.date;
+    dateInput.addEventListener("input", () => {
+      state.dirty = true;
+      item.date = dateInput.value;
+      item.dateAuto = false;
+      renderShoutouts();
+    });
+
+    head.append(lab, dateInput);
+
+    const ta = document.createElement("textarea");
+    ta.id = `shoutout-text-${i}`;
+    ta.rows = 3;
+    ta.placeholder = "Enter customer survey comment...";
+    ta.value = item.text;
+    ta.addEventListener("input", () => {
+      state.dirty = true;
+      item.text = ta.value;
+      renderShoutouts();
+    });
+
+    card.append(head, ta);
+    box.append(card);
+  });
+}
+
 function updateHeadcount() {
   const ftIdx = DEPT_METRICS.findIndex(d => d.key === "ft");
   const ptIdx = DEPT_METRICS.findIndex(d => d.key === "pt");
@@ -1108,6 +1266,66 @@ function renderAssoc() {
   });
 }
 
+function renderShoutouts() {
+  const overlay = $("shoutoutsOverlay");
+  if (!overlay) return;
+  overlay.replaceChildren();
+
+  SHOUTOUT_SLOTS.forEach((slot, i) => {
+    const item = state.shoutouts[i];
+
+    const textDiv = document.createElement("div");
+    textDiv.className = "shoutout-text";
+    Object.assign(textDiv.style, {
+      left: `${slot.text.left}%`,
+      top: `${slot.text.top}%`,
+      width: `${slot.text.width}%`,
+      height: `${slot.text.height}%`
+    });
+    textDiv.textContent = item.text;
+    overlay.append(textDiv);
+
+    const badgeDiv = document.createElement("div");
+    badgeDiv.className = "shoutout-badge";
+    Object.assign(badgeDiv.style, {
+      left: `${slot.badge.left}%`,
+      top: `${slot.badge.top}%`,
+      width: `${slot.badge.width}%`,
+      height: `${slot.badge.height}%`
+    });
+    badgeDiv.textContent = item.date;
+    overlay.append(badgeDiv);
+  });
+
+  fitShoutouts();
+}
+
+/** Dynamically scales each speech bubble's font size to maximize readability while fitting long surveys. */
+function fitShoutouts() {
+  const container = $("shoutoutsContainer");
+  if (!container || container.hidden) return;
+
+  container.querySelectorAll(".shoutout-text").forEach(el => {
+    if (!el.textContent.trim()) return;
+    let size = 1.95;
+    el.style.fontSize = `${size}em`;
+    while ((el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1) && size > 0.55) {
+      size = +(size - 0.04).toFixed(2);
+      el.style.fontSize = `${size}em`;
+    }
+  });
+
+  container.querySelectorAll(".shoutout-badge").forEach(el => {
+    if (!el.textContent.trim()) return;
+    let size = 2.05;
+    el.style.fontSize = `${size}em`;
+    while (el.scrollWidth > el.clientWidth && size > 1.35) {
+      size = +(size - 0.05).toFixed(2);
+      el.style.fontSize = `${size}em`;
+    }
+  });
+}
+
 /* ---------------- Week / FY date ---------------- */
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -1162,7 +1380,29 @@ function syncTitleDate() {
     state.title.date = `${f(start)} – ${f(end)}`;
   }
   syncFyDateInput();
+  syncShoutoutDates();
   renderTitle();
+}
+
+function syncShoutoutDates() {
+  const num = parseInt(state.week, 10);
+  const yr = state.fyStartYear ?? currentFYStartYear();
+  const validWeek = num >= 1 && num <= weeksInFY(yr);
+  const weekStart = validWeek ? fyWeekRange(yr, num).start : null;
+
+  state.shoutouts.forEach((item, i) => {
+    if (item.dateAuto) {
+      let dayStr = "";
+      if (weekStart) {
+        const d = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i);
+        dayStr = `${d.getMonth() + 1}/${d.getDate()}`;
+      }
+      item.date = dayStr;
+      const input = $(`shoutout-date-${i}`);
+      if (input) input.value = dayStr;
+    }
+  });
+  renderShoutouts();
 }
 
 function syncFyDateInput() {
@@ -1281,17 +1521,23 @@ function updateContainerFonts() {
     if (!c.hidden) c.style.fontSize = `${c.offsetWidth / 100}px`;
   });
   fitTitleSlide();
+  fitShoutouts();
 }
 
 function toggleView() {
   const view = currentView();
   const isTitle = view === "title";
+  const isShoutouts = view === "shoutouts";
+  
   Object.entries(VIEWS).forEach(([key, v]) => {
     $(v.container).hidden = key !== view;
     $(v.controls).hidden = key !== view;
   });
+  
   $("titleBgRow").hidden = !isTitle;
   $("titleStoreRow").hidden = !isTitle;
+  $("shoutoutsBgRow").hidden = !isShoutouts;
+  
   syncFyDateInput();
   updateContainerFonts();
 }
@@ -1300,11 +1546,14 @@ function toggleView() {
 
 /** Returns an error message, or "" if the active view is ready to export. */
 function validateExport(view) {
-  if (view !== "title" && $("weekInput").value.trim() === "") return "Please enter a Week Number before exporting.";
+  if (view !== "title" && view !== "shoutouts" && $("weekInput").value.trim() === "") return "Please enter a Week Number before exporting.";
 
   if (view === "title") {
     const t = state.title;
     if (!t.date.trim() || !t.store.trim() || !t.fact.trim()) return "Please fill in the Walmart FY Date, Store Number and Fact.";
+  } else if (view === "shoutouts") {
+    const hasAny = state.shoutouts.some(s => s.text.trim() !== "");
+    if (!hasAny) return "Please enter at least one Customer Shoutout before exporting.";
   } else if (view === "fulfillment") {
     const goalsNeeded = METRICS.map((m, i) => (m.noGoalInput ? "x" : state.goals[i]));
     if ([...state.perf, ...goalsNeeded].some(v => v.trim() === "")) return "Please fill in all Fulfillment Metrics & Goals.";
@@ -1441,6 +1690,7 @@ function init() {
   loadStaticImages();
   initControls();
   initTitleControls();
+  initShoutoutsControls();
   // Once facts.json arrives, swap the starting fact for one from it (unless the user already typed their own).
   loadFacts().then(() => {
     if (!state.title.factAuto) return;
@@ -1452,6 +1702,7 @@ function init() {
   renderDept();
   renderAssoc();
   renderTitle();
+  renderShoutouts();
 
   // Default every slide to last week's dates (can still be changed via the calendar or by typing).
   const last = lastFiscalWeek();
