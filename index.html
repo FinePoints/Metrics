@@ -600,6 +600,13 @@ details[open] summary::after { transform: rotate(180deg); }
           <option value="title">Title Slide</option>
         </select>
       </div>
+      <div class="panel-row" id="titleThemeRow" hidden>
+        <label for="title-theme-select">Theme:</label>
+        <select id="title-theme-select">
+          <option value="none" selected>None</option>
+          <option value="harvest">Harvest</option>
+        </select>
+      </div>
       <div class="panel-row" id="titleBgRow" hidden>
         <label for="title-bg-select">Background:</label>
         <select id="title-bg-select"></select>
@@ -703,7 +710,7 @@ details[open] summary::after { transform: rotate(180deg); }
   <script>
 "use strict";
 
-const APP_VERSION = "1.0.88";
+const APP_VERSION = "1.0.89";
 const PLACEHOLDER_IMG = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080"><rect width="100%" height="100%" fill="#f4f6f8"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" font-weight="bold" fill="#a0aab5">Please Upload Background Image</text></svg>'
 );
@@ -755,10 +762,16 @@ const ASSOC_GROUPS = [
   { key: "preppers",   title: "Top Preppers",   valueLabel: "Total Preps",     count: 2,  required: 2 }
 ];
 
-const TITLE_BGS = Array.from({ length: 7 }, (_, i) => ({
-  value: `images/title/title${i}.jpg`,
-  label: `Background ${i + 1}`
-}));
+const TITLE_THEMES = {
+  none: Array.from({ length: 7 }, (_, i) => ({
+    value: `images/title/title${i}.jpg`,
+    label: `Background ${i + 1}`
+  })),
+  harvest: Array.from({ length: 5 }, (_, i) => ({
+    value: `images/title/harvest/harvesttitle${i + 1}.jpg`,
+    label: `Background ${i + 1}`
+  }))
+};
 
 const SHOUTOUT_THEMES = {
   none: Array.from({ length: 11 }, (_, i) => ({
@@ -788,7 +801,7 @@ const VIEWS = {
   department:  { container: "departmentContainer",  controls: "controls-department",  file: "Walmart_Department_Metrics",    bg: "department-bg",  img: "Rearranging_layout_elements_1b76f72c_2K (1).jpg" },
   associate:   { container: "associateContainer",   controls: "controls-associate",   file: "Walmart_Associate_Performance", bg: "associate-bg",   img: "associatedashb.jpg" },
   shoutouts:   { container: "shoutoutsContainer",   controls: "controls-shoutouts",   file: "Walmart_Customer_Shoutouts",    bg: "shoutouts-bg",   img: "588.jpg" }, // img is overridden dynamically
-  title:       { container: "titleContainer",       controls: "controls-title",       file: "Walmart_Title_Slide",           bg: "title-bg",       img: TITLE_BGS[0].value }
+  title:       { container: "titleContainer",       controls: "controls-title",       file: "Walmart_Title_Slide",           bg: "title-bg",       img: TITLE_THEMES["none"][0].value } // img is overridden dynamically
 };
 
 /** Walmart facts live in their own database file, facts.json ({ "facts": ["...", ...] }).
@@ -831,7 +844,8 @@ const state = {
   title: {
     date: "",
     store: "1241",
-    bg: TITLE_BGS[Math.floor(Math.random() * TITLE_BGS.length)].value,
+    theme: "none",
+    bg: TITLE_THEMES["none"][Math.floor(Math.random() * TITLE_THEMES["none"].length)].value,
     factTitle: "Fact of the Week",
     fact: "",
     factAuto: true
@@ -1035,14 +1049,39 @@ function initControls() {
 function initTitleControls() {
   if (!state.title.fact) state.title.fact = nextFact();
 
+  const themeSel = $("title-theme-select");
   const bgSel = $("title-bg-select");
-  TITLE_BGS.forEach(({ value, label }) => {
-    const opt = document.createElement("option");
-    opt.value = value;
-    opt.textContent = label;
-    opt.selected = value === state.title.bg;
-    bgSel.append(opt);
+
+  function populateTitleBgDropdown(themeKey) {
+    bgSel.innerHTML = "";
+    TITLE_THEMES[themeKey].forEach(({ value, label }) => {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = label;
+      bgSel.append(opt);
+    });
+  }
+
+  themeSel.value = state.title.theme;
+  populateTitleBgDropdown(state.title.theme);
+  bgSel.value = state.title.bg;
+
+  themeSel.addEventListener("change", () => {
+    state.dirty = true;
+    state.title.theme = themeSel.value;
+    populateTitleBgDropdown(state.title.theme);
+
+    // Pick a random background from the newly selected theme
+    const bgs = TITLE_THEMES[state.title.theme];
+    const randomBg = bgs[Math.floor(Math.random() * bgs.length)].value;
+    
+    state.title.bg = randomBg;
+    bgSel.value = randomBg;
+
+    VIEWS.title.img = state.title.bg;
+    loadImage($("title-bg"), `${state.title.bg}?v=${APP_VERSION}&t=${Date.now()}`, PLACEHOLDER_IMG);
   });
+
   bgSel.addEventListener("change", () => {
     state.dirty = true;
     state.title.bg = bgSel.value;
@@ -1573,8 +1612,10 @@ function toggleView() {
     $(v.controls).hidden = key !== view;
   });
   
+  $("titleThemeRow").hidden = !isTitle;
   $("titleBgRow").hidden = !isTitle;
   $("titleStoreRow").hidden = !isTitle;
+  
   $("shoutoutsThemeRow").hidden = !isShoutouts;
   $("shoutoutsBgRow").hidden = !isShoutouts;
   
