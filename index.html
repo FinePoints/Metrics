@@ -710,7 +710,7 @@ details[open] summary::after { transform: rotate(180deg); }
   <script>
 "use strict";
 
-const APP_VERSION = "1.0.89";
+const APP_VERSION = "1.0.90";
 const PLACEHOLDER_IMG = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080"><rect width="100%" height="100%" fill="#f4f6f8"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" font-weight="bold" fill="#a0aab5">Please Upload Background Image</text></svg>'
 );
@@ -1080,6 +1080,7 @@ function initTitleControls() {
 
     VIEWS.title.img = state.title.bg;
     loadImage($("title-bg"), `${state.title.bg}?v=${APP_VERSION}&t=${Date.now()}`, PLACEHOLDER_IMG);
+    renderTitle(); // Re-render to update the banner color
   });
 
   bgSel.addEventListener("change", () => {
@@ -1302,9 +1303,15 @@ function renderDept() {
 }
 
 function renderTitle() {
-  const { date, store, factTitle, fact } = state.title;
+  const { date, store, factTitle, fact, theme } = state.title;
   const parts = [date.trim(), store.trim() ? `Store ${store.trim()}` : ""].filter(Boolean);
-  $("titleBannerText").textContent = parts.join(" | ");
+  
+  const span = $("titleBannerText");
+  span.textContent = parts.join(" | ");
+  
+  // Apply a dark autumn brown for the Harvest theme instead of standard blue
+  span.style.color = theme === "harvest" ? "#4a2800" : "#1456a6";
+
   $("factTitle").textContent = factTitle;
   $("factText").textContent = fact;
   fitTitleSlide();
