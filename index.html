@@ -604,6 +604,13 @@ details[open] summary::after { transform: rotate(180deg); }
         <label for="title-bg-select">Background:</label>
         <select id="title-bg-select"></select>
       </div>
+      <div class="panel-row" id="shoutoutsThemeRow" hidden>
+        <label for="shoutouts-theme-select">Theme:</label>
+        <select id="shoutouts-theme-select">
+          <option value="none" selected>None</option>
+          <option value="harvest">Harvest</option>
+        </select>
+      </div>
       <div class="panel-row" id="shoutoutsBgRow" hidden>
         <label for="shoutouts-bg-select">Background:</label>
         <select id="shoutouts-bg-select"></select>
@@ -696,7 +703,7 @@ details[open] summary::after { transform: rotate(180deg); }
   <script>
 "use strict";
 
-const APP_VERSION = "1.0.86";
+const APP_VERSION = "1.0.88";
 const PLACEHOLDER_IMG = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080"><rect width="100%" height="100%" fill="#f4f6f8"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" font-weight="bold" fill="#a0aab5">Please Upload Background Image</text></svg>'
 );
@@ -753,10 +760,16 @@ const TITLE_BGS = Array.from({ length: 7 }, (_, i) => ({
   label: `Background ${i + 1}`
 }));
 
-const SHOUTOUT_BGS = Array.from({ length: 11 }, (_, i) => ({
-  value: `images/so/so${i + 1}.jpg`,
-  label: `Background ${i + 1}`
-}));
+const SHOUTOUT_THEMES = {
+  none: Array.from({ length: 11 }, (_, i) => ({
+    value: `images/so/so${i + 1}.jpg`,
+    label: `Background ${i + 1}`
+  })),
+  harvest: Array.from({ length: 5 }, (_, i) => ({
+    value: `images/so/harvest/harvestso${i + 1}.jpg`,
+    label: `Background ${i + 1}`
+  }))
+};
 
 const SHOUTOUT_SLOTS = [
   // Top row (Sat - Tue)
@@ -823,7 +836,8 @@ const state = {
     fact: "",
     factAuto: true
   },
-  shoutoutsBg: SHOUTOUT_BGS[Math.floor(Math.random() * SHOUTOUT_BGS.length)].value,
+  shoutoutsTheme: "none",
+  shoutoutsBg: SHOUTOUT_THEMES["none"][Math.floor(Math.random() * SHOUTOUT_THEMES["none"].length)].value,
   dirty: false,
   perf:  METRICS.map(() => ""),
   goals: METRICS.map(m => m.goal),
@@ -1081,22 +1095,47 @@ function setFact(text) {
 }
 
 function initShoutoutsControls() {
+  const themeSel = $("shoutouts-theme-select");
   const bgSel = $("shoutouts-bg-select");
-  SHOUTOUT_BGS.forEach(({ value, label }) => {
-    const opt = document.createElement("option");
-    opt.value = value;
-    opt.textContent = label;
-    opt.selected = value === state.shoutoutsBg;
-    bgSel.append(opt);
+  const box = $("shoutoutsControls");
+
+  function populateShoutoutsBgDropdown(themeKey) {
+    bgSel.innerHTML = "";
+    SHOUTOUT_THEMES[themeKey].forEach(({ value, label }) => {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = label;
+      bgSel.append(opt);
+    });
+  }
+
+  // Initialize the theme and background dropdown options
+  themeSel.value = state.shoutoutsTheme;
+  populateShoutoutsBgDropdown(state.shoutoutsTheme);
+  bgSel.value = state.shoutoutsBg;
+
+  themeSel.addEventListener("change", () => {
+    state.dirty = true;
+    state.shoutoutsTheme = themeSel.value;
+    populateShoutoutsBgDropdown(state.shoutoutsTheme);
+
+    // Pick a random background from the newly selected theme
+    const bgs = SHOUTOUT_THEMES[state.shoutoutsTheme];
+    const randomBg = bgs[Math.floor(Math.random() * bgs.length)].value;
+    
+    state.shoutoutsBg = randomBg;
+    bgSel.value = randomBg;
+
+    VIEWS.shoutouts.img = state.shoutoutsBg;
+    loadImage($("shoutouts-bg"), `${state.shoutoutsBg}?v=${APP_VERSION}&t=${Date.now()}`, PLACEHOLDER_IMG);
   });
+
   bgSel.addEventListener("change", () => {
     state.dirty = true;
     state.shoutoutsBg = bgSel.value;
     VIEWS.shoutouts.img = state.shoutoutsBg;
     loadImage($("shoutouts-bg"), `${state.shoutoutsBg}?v=${APP_VERSION}&t=${Date.now()}`, PLACEHOLDER_IMG);
   });
-
-  const box = $("shoutoutsControls");
 
   state.shoutouts.forEach((item, i) => {
     const slot = SHOUTOUT_SLOTS[i];
@@ -1536,6 +1575,7 @@ function toggleView() {
   
   $("titleBgRow").hidden = !isTitle;
   $("titleStoreRow").hidden = !isTitle;
+  $("shoutoutsThemeRow").hidden = !isShoutouts;
   $("shoutoutsBgRow").hidden = !isShoutouts;
   
   syncFyDateInput();
