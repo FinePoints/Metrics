@@ -710,7 +710,7 @@ details[open] summary::after { transform: rotate(180deg); }
   <script>
 "use strict";
 
-const APP_VERSION = "1.0.94";
+const APP_VERSION = "1.0.95";
 const PLACEHOLDER_IMG = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080"><rect width="100%" height="100%" fill="#f4f6f8"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" font-weight="bold" fill="#a0aab5">Please Upload Background Image</text></svg>'
 );
@@ -1240,18 +1240,13 @@ function updateHeadcount() {
 function gaugeSvg(text, color, fillPercent) {
   const offset = ARC_LENGTH * (1 - fillPercent / 100);
   
-  // Auto-scale the font size down slightly if the string is very long (e.g. 100.00%)
-  let fSize = 44;
-  const estW = text.length * fSize * 0.58; 
-  if (estW > 185) fSize = (185 / (text.length * 0.58)).toFixed(1);
-
   return `
     <svg viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg">
       <path d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="#e2e2e2" stroke-width="25"/>
       <path d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="${color}" stroke-width="25"
             stroke-dasharray="${ARC_LENGTH}" stroke-dashoffset="${offset}"/>
       <text x="100" y="85" dominant-baseline="middle" text-anchor="middle" font-weight="bold"
-            font-size="${fSize}" font-family="Arial, sans-serif" fill="#000">${escapeHtml(text)}</text>
+            font-size="35" font-family="Arial, sans-serif" fill="#000">${escapeHtml(text)}</text>
     </svg>`;
 }
 
@@ -1259,14 +1254,8 @@ function textSvg(text, type, color) {
   // Center all plain text (Wait Time, Sales, Total Orders) at exactly y=65 for perfect row alignment
   const y = 65; 
   const fill = type === "time" ? color : "#000";
+  const fSize = type === "time" ? 24 : 35;
   
-  // Auto-scale font down if large numbers (e.g., "$1,234,567") would exceed the safe 185px inner width
-  let fSize = type === "time" ? 34 : 44;
-  const estW = text.length * fSize * 0.58; // 0.58 approximates character width ratio for bold font
-  if (estW > 185) {
-    fSize = (185 / (text.length * 0.58)).toFixed(1);
-  }
-
   return `
     <svg viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg">
       <text x="100" y="${y}" font-family="Arial, sans-serif" font-size="${fSize}" font-weight="bold"
