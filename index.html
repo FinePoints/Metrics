@@ -605,6 +605,7 @@ details[open] summary::after { transform: rotate(180deg); }
         <select id="title-theme-select">
           <option value="none" selected>None</option>
           <option value="harvest">Harvest</option>
+          <option value="christmas">Christmas</option>
         </select>
       </div>
       <div class="panel-row" id="titleBgRow" hidden>
@@ -616,6 +617,7 @@ details[open] summary::after { transform: rotate(180deg); }
         <select id="shoutouts-theme-select">
           <option value="none" selected>None</option>
           <option value="harvest">Harvest</option>
+          <option value="christmas">Christmas</option>
         </select>
       </div>
       <div class="panel-row" id="shoutoutsBgRow" hidden>
@@ -710,7 +712,7 @@ details[open] summary::after { transform: rotate(180deg); }
   <script>
 "use strict";
 
-const APP_VERSION = "1.0.95";
+const APP_VERSION = "1.0.97";
 const PLACEHOLDER_IMG = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080"><rect width="100%" height="100%" fill="#f4f6f8"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" font-weight="bold" fill="#a0aab5">Please Upload Background Image</text></svg>'
 );
@@ -770,6 +772,10 @@ const TITLE_THEMES = {
   harvest: Array.from({ length: 5 }, (_, i) => ({
     value: `images/title/harvest/harvesttitle${i + 1}.jpg`,
     label: `Background ${i + 1}`
+  })),
+  christmas: Array.from({ length: 7 }, (_, i) => ({
+    value: `images/title/christmas/titlechristmas${i + 1}.jpg`,
+    label: `Background ${i + 1}`
   }))
 };
 
@@ -780,6 +786,10 @@ const SHOUTOUT_THEMES = {
   })),
   harvest: Array.from({ length: 5 }, (_, i) => ({
     value: `images/so/harvest/harvestso${i + 1}.jpg`,
+    label: `Background ${i + 1}`
+  })),
+  christmas: Array.from({ length: 8 }, (_, i) => ({
+    value: `images/so/christmas/sochristmas${i + 1}.jpg`,
     label: `Background ${i + 1}`
   }))
 };
@@ -1319,8 +1329,12 @@ function renderTitle() {
   const span = $("titleBannerText");
   span.textContent = parts.join(" | ");
   
-  // Apply a dark autumn brown for the Harvest theme instead of standard blue
-  span.style.color = theme === "harvest" ? "#4a2800" : "#1456a6";
+  // Match banner text color to the active Title Slide theme
+  const themeColors = {
+    harvest: "#4a2800",
+    christmas: "#8b0000"
+  };
+  span.style.color = themeColors[theme] || "#1456a6";
 
   $("factTitle").textContent = factTitle;
   $("factText").textContent = fact;
